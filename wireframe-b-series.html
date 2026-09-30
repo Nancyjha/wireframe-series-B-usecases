@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMF Analytics — B Series (Daily Operations)</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --white:#ffffff;--bg:#f7f8fa;--border:#e4e7ec;--border-light:#f0f2f5;
+  --purple:#6d28d9;--purple-h:#5b21b6;--purple-light:#ede9fe;--purple-mid:#8b5cf6;
+  --text:#0f172a;--text-sec:#475569;--text-muted:#94a3b8;--text-link:#6d28d9;
+  --red:#dc2626;--red-bg:#fef2f2;--red-border:#fecaca;
+  --amber:#b45309;--amber-bg:#fffbeb;--amber-border:#fde68a;
+  --green:#059669;--green-bg:#ecfdf5;--green-border:#6ee7b7;
+  --blue:#1d4ed8;--blue-bg:#eff6ff;--blue-border:#bfdbfe;
+  --orange:#c2410c;--orange-bg:#fff7ed;--orange-border:#fed7aa;
+}
+*{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,select,input{font-family:inherit}
+
+/* PROTOTYPE NAV */
+#pnav{position:fixed;top:0;left:0;right:0;height:34px;background:#1e1b4b;z-index:9999;display:flex;align-items:center;padding:0 10px;gap:3px;overflow-x:auto;border-bottom:2px solid #312e81;flex-shrink:0}
+#pnav .lbl{font-size:10px;color:#818cf8;font-weight:700;letter-spacing:.08em;white-space:nowrap;margin-right:6px;flex-shrink:0}
+.pb{background:none;border:1px solid #3730a3;color:#a5b4fc;font-size:11px;padding:2px 9px;border-radius:3px;white-space:nowrap;flex-shrink:0;cursor:pointer;transition:all 100ms}
+.pb:hover{background:#312e81;color:#e0e7ff}.pb.on{background:#6d28d9;border-color:#6d28d9;color:#fff}
+.pdiv{width:1px;height:14px;background:#312e81;flex-shrink:0;margin:0 2px}
+
+/* SCREENS */
+.screen{display:none;padding-top:34px;min-height:100vh;flex-direction:column}.screen.on{display:flex}
+
+/* TOPNAV */
+.topnav{height:48px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;position:sticky;top:34px;z-index:100;flex-shrink:0}
+.tn-logo{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border);flex-shrink:0}
+.tn-logomark{width:26px;height:26px;background:var(--purple);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.tn-brand{padding:0 14px;font-size:13px;font-weight:700;color:var(--text);border-right:1px solid var(--border);height:48px;display:flex;align-items:center;flex-shrink:0}
+.tn-bc{display:flex;align-items:center;gap:5px;padding:0 14px;font-size:13px;color:var(--text-sec);flex:1;overflow:hidden;min-width:0}
+.tn-bc a{color:var(--text-link);cursor:pointer;white-space:nowrap;flex-shrink:0}.tn-bc a:hover{text-decoration:underline}
+.tn-bc .sep{color:var(--text-muted);font-size:12px;flex-shrink:0}.tn-bc .cur{color:var(--text-sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tn-right{display:flex;align-items:center;height:48px;margin-left:auto;flex-shrink:0}
+.tn-btn{height:48px;padding:0 14px;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-sec);border-left:1px solid var(--border);cursor:pointer;white-space:nowrap;transition:background 80ms}
+.tn-btn:hover{background:var(--bg)}
+.org-pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sec);background:var(--bg);border:1px solid var(--border);padding:3px 10px;border-radius:4px;cursor:pointer}
+
+/* DRILLED-FROM BAR — PRISM pattern */
+.drill-bar{background:var(--bg);border-bottom:1px solid var(--border);padding:6px 28px;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:5px;flex-shrink:0}
+.drill-bar a{color:var(--text-link);cursor:pointer}.drill-bar a:hover{text-decoration:underline}
+
+/* SHELL */
+.shell{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:48px;background:var(--white);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px}
+.sib{width:34px;height:34px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:var(--text-muted);transition:all 80ms}
+.sib:hover{background:var(--purple-light);color:var(--purple)}.sib.on{background:var(--purple-light);color:var(--purple)}
+.sib-gap{margin-top:auto}
+.main{flex:1;overflow-y:auto;min-width:0}
+.right-rail{width:40px;background:var(--white);border-left:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:3px}
+.rrb{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted);cursor:pointer}
+.rrb:hover{background:var(--purple-light);color:var(--purple)}
+
+/* CONTENT AREA */
+.content{padding:0 28px 32px}
+.page-header{padding:20px 28px 0;margin-bottom:16px}
+.page-title{font-size:21px;font-weight:600;color:var(--text);letter-spacing:-.3px;margin-bottom:2px}
+.page-desc{font-size:13px;color:var(--text-sec)}
+
+/* REPORT DESC CARD — PRISM's signature component */
+.rdc{background:var(--white);border:1px solid var(--border);border-radius:6px;padding:18px 22px;margin-bottom:14px;display:grid;grid-template-columns:1fr 240px;gap:28px}
+.rdc-q{font-size:11px;color:var(--text-muted);margin-bottom:3px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.rdc-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:8px;letter-spacing:-.2px}
+.rdc-body{font-size:12px;color:var(--text-sec);line-height:1.65}
+.rdc-body strong{color:var(--text)}
+.rdc-right{border-left:1px solid var(--border);padding-left:22px}
+.rdc-right-title{font-size:11px;font-weight:600;color:var(--text-sec);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.sev-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.sev-tbl td{padding:4px 0;color:var(--text-sec);border-bottom:1px solid var(--border-light)}
+.sev-tbl tr:last-child td{border-bottom:none}
+
+/* FINDING BANNER — inline on report pages */
+.finding-banner{border-radius:5px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:12px}
+.fb-icon{font-size:14px;flex-shrink:0;margin-top:1px}.fb-body{flex:1}.fb-title{font-weight:600;margin-bottom:2px}.fb-desc{color:var(--text-sec);line-height:1.5}
+.fb-action{margin-left:auto;flex-shrink:0;align-self:center;padding-left:10px}
+.finding-banner.high{background:var(--orange-bg);border:1px solid var(--orange-border)}.finding-banner.high .fb-icon,.finding-banner.high .fb-title{color:var(--orange)}
+.finding-banner.med{background:var(--amber-bg);border:1px solid var(--amber-border)}.finding-banner.med .fb-icon,.finding-banner.med .fb-title{color:var(--amber)}
+.finding-banner.info{background:var(--blue-bg);border:1px solid var(--blue-border)}.finding-banner.info .fb-icon,.finding-banner.info .fb-title{color:var(--blue)}
+.finding-banner.ok{background:var(--green-bg);border:1px solid var(--green-border)}.finding-banner.ok .fb-icon,.finding-banner.ok .fb-title{color:var(--green)}
+.finding-banner.fail{background:var(--red-bg);border:1px solid var(--red-border)}.finding-banner.fail .fb-icon,.finding-banner.fail .fb-title{color:var(--red)}
+
+/* TOOLBAR */
+.toolbar{background:var(--white);border:1px solid var(--border);border-radius:5px;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ctrl-sel{height:28px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--text-sec);font-size:12px;padding:0 8px;outline:none;cursor:pointer;transition:border-color 100ms}
+.ctrl-sel:focus{border-color:var(--purple)}
+.fchip{display:inline-flex;align-items:center;gap:4px;background:var(--purple-light);border:1px solid #c4b5fd;border-radius:10px;padding:2px 9px;font-size:11px;color:var(--purple);font-weight:500;white-space:nowrap}
+.fchip .cx{cursor:pointer;color:#a78bfa;margin-left:2px;font-size:12px}.fchip .cx:hover{color:var(--red)}
+
+/* KPI ROW */
+.kpi-row{display:grid;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--white);margin-bottom:14px}
+.kpi-4{grid-template-columns:repeat(4,1fr)}.kpi-3{grid-template-columns:repeat(3,1fr)}.kpi-2{grid-template-columns:repeat(2,1fr)}
+.kpi-tile{padding:14px 18px;background:var(--white);border-right:1px solid var(--border);position:relative;cursor:pointer;transition:background 80ms}
+.kpi-tile:last-child{border-right:none}.kpi-tile:hover{background:#fafbfe}
+.kpi-tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.kpi-tile.green::before{background:var(--green)}.kpi-tile.amber::before{background:var(--amber)}
+.kpi-tile.red::before{background:var(--red)}.kpi-tile.blue::before{background:var(--blue)}
+.kpi-tile.purple::before{background:var(--purple)}.kpi-tile.neu::before{background:var(--border)}
+.kpi-lbl{font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500}
+.kpi-val{font-size:22px;font-weight:600;color:var(--text);line-height:1;margin-bottom:3px}
+.kpi-val.red{color:var(--red)}.kpi-val.amber{color:var(--amber)}.kpi-val.green{color:var(--green)}.kpi-val.muted{color:var(--text-muted)}
+.kpi-sub{font-size:11px;color:var(--text-muted);line-height:1.4}
+.kpi-delta{font-size:11px;font-weight:500;margin-top:3px}
+.kpi-delta.up-bad{color:var(--red)}.kpi-delta.up-good{color:var(--green)}.kpi-delta.down-good{color:var(--green)}.kpi-delta.down-bad{color:var(--red)}
+
+/* CHARTS */
+.chart-grid{display:grid;gap:14px;margin-bottom:14px}
+.cg-2{grid-template-columns:1fr 1fr}.cg-3{grid-template-columns:1fr 1fr 1fr}
+.chart-card{background:var(--white);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.chart-head{padding:12px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.chart-title{font-size:13px;font-weight:600;color:var(--text)}
+.chart-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.chart-body{padding:12px 16px}
+.chart-foot{padding:6px 16px 10px;display:flex;align-items:center;gap:14px;border-top:1px solid var(--border-light);flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)}
+.leg-line{width:16px;height:2px;border-radius:1px;flex-shrink:0}
+.leg-dash{width:16px;height:0;border-top:2px dashed;flex-shrink:0}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* TABLE */
+.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border);background:var(--bg)}
+th{padding:8px 13px;text-align:left;font-size:11px;font-weight:600;color:var(--text-sec);white-space:nowrap;cursor:pointer;user-select:none}
+th.sd::after{content:' ↓';color:var(--purple)}th.sa::after{content:' ↑';color:var(--purple)}
+td{padding:9px 13px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border-light);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.cl{cursor:pointer}
+tbody tr.cl:hover td{background:#fafbfe}
+.arrow{color:var(--text-muted);opacity:0;font-size:13px;transition:opacity 80ms}
+tbody tr.cl:hover .arrow{opacity:1;color:var(--purple)}
+.tbl-foot{padding:8px 13px;font-size:12px;color:var(--text-muted);background:var(--bg);border-top:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+.pgn{display:flex;gap:2px}
+.pg{width:24px;height:24px;background:var(--white);border:1px solid var(--border);border-radius:3px;font-size:11px;color:var(--text-sec);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:all 80ms}
+.pg:hover{border-color:var(--purple);color:var(--purple)}.pg.cur{background:var(--purple);border-color:var(--purple);color:#fff}
+/* row state left borders */
+tbody tr.row-high td:first-child{box-shadow:inset 2px 0 0 var(--orange)}
+tbody tr.row-fail td:first-child{box-shadow:inset 2px 0 0 var(--red)}
+tbody tr.row-warn td:first-child{box-shadow:inset 2px 0 0 var(--amber)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.crit{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.badge.high{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+.badge.med{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge.low{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.badge.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge.neu{background:var(--bg);color:var(--text-muted);border:1px solid var(--border)}
+.type-chip{font-size:10px;background:var(--bg);border:1px solid var(--border);color:var(--text-sec);padding:1px 6px;border-radius:3px;font-family:monospace}
+.conn-chip{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
+.batch{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.cics{background:var(--purple-light);color:var(--purple);border:1px solid #c4b5fd}
+
+/* CONF BAR */
+.conf-wrap{display:flex;align-items:center;gap:5px}
+.conf-bar{height:4px;width:56px;background:var(--border);border-radius:2px;flex-shrink:0}
+.conf-fill{height:100%;border-radius:2px}
+.conf-pct{font-size:11px;color:var(--text-muted);white-space:nowrap}
+
+/* MONO */
+.mono{font-family:'SFMono-Regular',Consolas,monospace;font-size:12px}
+.td-sec{color:var(--text-sec)}.td-muted{color:var(--text-muted)}
+.td-red{color:var(--red);font-weight:600}.td-amber{color:var(--amber);font-weight:500}
+.td-green{color:var(--green)}.td-link{color:var(--text-link);cursor:pointer}
+.td-link:hover{text-decoration:underline}
+
+/* INLINE EXPAND */
+.exp-row td{padding:0;background:var(--bg)}
+.exp-inner{padding:14px 16px 14px 40px;border-top:1px solid var(--border-light)}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.exp-label{font-size:11px;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.exp-kv{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;font-size:12px}
+.exp-k{color:var(--text-muted)}.exp-v{color:var(--text-sec);font-family:monospace;font-size:11px}
+.exp-actions{display:flex;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)}
+
+/* MODAL */
+.mbd{display:none;position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:500;align-items:center;justify-content:center;padding:20px}
+.mbd.on{display:flex}
+.modal{background:var(--white);border:1px solid var(--border);border-radius:8px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.m-head{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:10}
+.m-title{font-size:15px;font-weight:600;color:var(--text)}.m-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.m-close{width:26px;height:26px;background:none;border:none;color:var(--text-muted);font-size:17px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.m-close:hover{background:var(--bg);color:var(--text)}
+.m-body{padding:18px 20px}
+.m-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;bottom:0;background:var(--white)}
+.m-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px}
+.m-tab{padding:7px 14px;font-size:12px;font-weight:500;color:var(--text-sec);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;margin-bottom:-1px;transition:all 100ms}
+.m-tab:hover{color:var(--text)}.m-tab.on{color:var(--purple);border-bottom-color:var(--purple)}
+.m-tp{display:none}.m-tp.on{display:block}
+.mini-grid{display:grid;gap:9px;margin-bottom:14px}
+.mini-4{grid-template-columns:repeat(4,1fr)}.mini-3{grid-template-columns:repeat(3,1fr)}
+.mini-c{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px}
+.mini-l{font-size:11px;color:var(--text-muted);margin-bottom:3px}.mini-v{font-size:17px;font-weight:600;color:var(--text)}
+.mini-v.red{color:var(--red)}.mini-v.amber{color:var(--amber)}.mini-v.green{color:var(--green)}
+
+/* TIMELINE */
+.tl{display:flex;flex-direction:column}
+.tl-row{display:flex;gap:11px;position:relative}
+.tl-row:not(:last-child)::after{content:'';position:absolute;left:7px;top:18px;bottom:-4px;width:1px;background:var(--border)}
+.tl-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:1px;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:9px;z-index:1;background:var(--white)}
+.tl-ok{border-color:var(--green);color:var(--green)}.tl-bad{border-color:var(--red);color:var(--red)}.tl-warn{border-color:var(--amber);color:var(--amber)}
+.tl-content{padding:0 0 14px}
+.tl-time{font-size:11px;color:var(--text-muted);font-family:monospace;margin-bottom:1px}
+.tl-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.tl-desc{font-size:12px;color:var(--text-sec);line-height:1.5}
+
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:18px;margin-bottom:14px}
+.donut-legend{display:flex;flex-direction:column;gap:7px;flex:1}
+.dl-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-sec)}
+.dl-sw{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.dl-val{font-size:13px;font-weight:600;color:var(--text);margin-left:auto}
+
+/* AI PANEL */
+.ai-panel{position:fixed;top:34px;right:0;bottom:0;width:520px;background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:400;transform:translateX(100%);transition:transform 200ms ease;box-shadow:-8px 0 32px rgba(0,0,0,.1)}
+.ai-panel.open{transform:translateX(0)}
+.ai-panel-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ai-avatar{width:28px;height:28px;background:var(--purple);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0}
+.ai-panel-title{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.ai-status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.ai-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.ai-close{width:24px;height:24px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:3px}
+.ai-close:hover{background:var(--bg);color:var(--text)}
+.ai-messages{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.ai-msg-user{align-self:flex-end;background:var(--purple);color:#fff;padding:9px 13px;border-radius:12px 12px 2px 12px;font-size:13px;max-width:85%;line-height:1.5}
+.ai-msg-ai{align-self:flex-start;max-width:92%}
+.ai-msg-ai-inner{background:var(--bg);border:1px solid var(--border);padding:10px 13px;border-radius:12px 12px 12px 2px;font-size:13px;color:var(--text);line-height:1.6}
+.ai-msg-ai-inner p+p{margin-top:8px}
+.ai-msg-ai-inner .ai-tbl{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+.ai-msg-ai-inner .ai-tbl th{padding:5px 8px;text-align:left;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border);background:none;font-weight:600}
+.ai-msg-ai-inner .ai-tbl td{padding:5px 8px;border-bottom:1px solid var(--border-light);color:var(--text-sec)}
+.ai-msg-ai-inner .ai-tbl tr:last-child td{border-bottom:none}
+.ai-msg-time{font-size:10px;color:var(--text-muted);margin-top:4px;padding-left:2px}
+.ai-footer{border-top:1px solid var(--border);padding:10px 14px;flex-shrink:0}
+.ai-scope{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin-bottom:7px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px}
+.ai-input-row{display:flex;gap:7px;align-items:flex-end}
+.ai-input{flex:1;border:1px solid var(--border);border-radius:5px;padding:8px 11px;font-size:13px;color:var(--text);outline:none;resize:none;font-family:inherit;line-height:1.5;min-height:36px;max-height:100px;transition:border-color 120ms}
+.ai-input:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(109,40,217,.08)}
+.ai-input::placeholder{color:var(--text-muted)}
+.ai-send{width:32px;height:32px;background:var(--purple);border:none;border-radius:4px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 80ms}
+.ai-send:hover{background:var(--purple-h)}
+.ai-hint{font-size:10px;color:var(--text-muted);text-align:center;margin-top:6px}
+.ai-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.ai-chip{font-size:11px;border:1px solid var(--border);border-radius:10px;padding:2px 9px;color:var(--text-sec);cursor:pointer;background:var(--white);transition:all 80ms}
+.ai-chip:hover{border-color:var(--purple);color:var(--purple)}
+
+/* AI FAB */
+.ai-fab{position:fixed;bottom:22px;right:22px;width:42px;height:42px;background:var(--purple);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(109,40,217,.38);font-size:17px;color:#fff;border:none;z-index:300;transition:all 120ms}
+.ai-fab:hover{background:var(--purple-h);transform:scale(1.06)}
+.ai-fab.open{right:536px}
+
+/* RECS CARD */
+.rec-card{background:var(--white);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.rec-card.featured{border-color:var(--purple);border-width:2px}
+.rec-card-head{padding:12px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:flex-start;gap:10px}
+.rec-card-body{padding:14px 16px;font-size:12px;color:var(--text-sec);line-height:1.65}
+.rec-card-actions{padding:9px 16px;background:var(--bg);border-top:1px solid var(--border-light);display:flex;gap:7px}
+.rec-featured-badge{font-size:10px;background:var(--purple-light);color:var(--purple);padding:1px 7px;border-radius:10px;font-weight:500;margin-left:auto;white-space:nowrap}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all 80ms;white-space:nowrap;line-height:1}
+.btn-p{background:var(--purple);color:#fff}.btn-p:hover{background:var(--purple-h)}
+.btn-s{background:var(--white);border:1px solid var(--border);color:var(--text-sec)}.btn-s:hover{border-color:var(--purple);color:var(--purple)}
+.btn-g{background:transparent;color:var(--text-sec);padding:6px 8px;border:none}.btn-g:hover{background:var(--bg);border-radius:3px}
+.btn-sm{padding:4px 9px;font-size:11px}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:5px;z-index:9998}
+.toast{background:var(--white);border:1px solid var(--border);border-radius:5px;padding:9px 13px;font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;min-width:220px;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.12);animation:tin 150ms ease-out}
+.toast.ok{border-left:3px solid var(--green)}.toast.fail{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--blue)}.toast.warn{border-left:3px solid var(--amber)}
+@keyframes tin{from{transform:translateY(4px);opacity:0}to{opacity:1}}
+.t-x{color:var(--text-muted);cursor:pointer;margin-left:auto;flex-shrink:0}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-ring{width:9px;height:9px;border:2px solid rgba(109,40,217,.2);border-top-color:var(--purple);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;flex-shrink:0}
+.flex-r{display:flex;align-items:center;gap:8px}.ml-a{margin-left:auto}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div id="pnav">
+  <span class="lbl">B Series</span>
+  <button class="pb on" onclick="go('s1')">1 · Dashboard</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s2')">2 · Findings</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s3')">3 · CPU Utilisation</button>
+  <button class="pb" onclick="go('s4')">4 · CPU interval modal</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s5')">5 · WLM Workload</button>
+  <button class="pb" onclick="go('s6')">6 · WLM detail modal</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s7')">7 · Job Activity (abends)</button>
+  <button class="pb" onclick="go('s8')">8 · Job detail modal</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s9')">9 · DB2 Accounting</button>
+  <button class="pb" onclick="go('s10')">10 · Plan detail modal</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s11')">11 · Buffer Pools</button>
+  <div class="pdiv"></div>
+  <button class="pb" onclick="go('s12')">12 · AI Recommendations</button>
+  <button class="pb" onclick="go('s13')">13 · AI Assistant</button>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- AI PANEL (shared across screens) -->
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-panel-head">
+    <div class="ai-avatar">✦</div>
+    <div>
+      <div class="ai-panel-title">SMF Analytics AI</div>
+      <div class="ai-status">Ready to help</div>
+    </div>
+    <button class="ai-close" onclick="closeAI()">✕</button>
+  </div>
+  <div class="ai-messages" id="ai-msgs">
+    <div class="ai-msg-ai">
+      <div class="ai-msg-ai-inner">How can I help? I can answer questions about your SMF data, explain findings, or analyse trends. Ask me anything about your mainframe.</div>
+      <div class="ai-msg-time">Ready</div>
+    </div>
+  </div>
+  <div class="ai-footer">
+    <div class="ai-scope">📍 Context: <strong id="ai-ctx" style="color:var(--text)">Dashboard</strong> — I can see your current page and filters</div>
+    <div class="ai-chips" id="ai-chips">
+      <span class="ai-chip" onclick="sendMsg(this.textContent)">Why did PAYROLL abend?</span>
+      <span class="ai-chip" onclick="sendMsg(this.textContent)">How much headroom do we have on PROD1?</span>
+      <span class="ai-chip" onclick="sendMsg(this.textContent)">What changed vs yesterday?</span>
+    </div>
+    <div class="ai-input-row">
+      <textarea class="ai-input" id="ai-input" placeholder="Ask me anything about your mainframe data…" rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+      <button class="ai-send" onclick="sendAI()">↑</button>
+    </div>
+    <div class="ai-hint">Enter to send · Shift+Enter for new line · Esc to close</div>
+  </div>
+</div>
+
+<!-- ════ S1 — DASHBOARD ════
+Shows: Morning view. Data freshness, KPI tiles (all
+reflecting configured thresholds), top findings, top
+AI recommendation, abend alert. Nothing hardcoded —
+tile colours change based on client thresholds.
+-->
+<div class="screen on" id="s1">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><span class="cur">Dashboard</span></div>
+    <div class="tn-right">
+      <div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div>
+      <div class="tn-btn">?</div>
+    </div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib on" title="Dashboard">⊞</div>
+      <div class="sib" title="Findings" onclick="go('s2')">⚑</div>
+      <div class="sib" title="CPU" onclick="go('s3')">◫</div>
+      <div class="sib" title="Jobs" onclick="go('s7')">◻</div>
+      <div class="sib" title="DB2" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div>
+      <div class="sib" title="Settings" onclick="toast('Settings','info')">⚙</div>
+      <div class="sib" title="You">👤</div>
+    </aside>
+    <main class="main">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-desc">Ingestion run 24 Sep 2026 · 03:47 AM · 4,832,441 records · 3 production LPARs</div>
+      </div>
+      <div class="content">
+
+        <!-- DATA FRESHNESS BAR -->
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:5px;padding:9px 14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0"></span>
+            <span style="color:var(--text-sec)">Data current · <strong style="color:var(--text)">24 Sep 2026 · 03:47 AM</strong></span>
+          </div>
+          <div style="width:1px;height:16px;background:var(--border)"></div>
+          <!-- ABEND ALERT — specific, clickable -->
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 9px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:4px" onclick="go('s7')">
+            <span style="color:var(--red)">✗</span>
+            <span style="color:var(--red);font-weight:600">38 abends · ▲12 vs yesterday · PAYROLL01 S0C4</span>
+            <span style="color:var(--red)">→</span>
+          </div>
+          <div style="margin-left:auto;font-size:12px;color:var(--text-muted)">Next ingest: 25 Sep 03:00 AM</div>
+          <button class="btn btn-s btn-sm" onclick="toast('Refreshed','ok')">↺</button>
+        </div>
+
+        <!-- KPI TILES — colours driven by client thresholds -->
+        <div class="kpi-row kpi-4" style="margin-bottom:10px">
+          <div class="kpi-tile green" onclick="go('s7')">
+            <div class="kpi-lbl">Job completion</div>
+            <div class="kpi-val green">99.2%</div>
+            <div class="kpi-sub">4,831 completed · 38 abended</div>
+            <div class="kpi-delta up-bad">▲ 38 abends vs 26 yesterday</div>
+          </div>
+          <div class="kpi-tile amber" onclick="go('s3')">
+            <div class="kpi-lbl">Peak CPU (PROD1)</div>
+            <div class="kpi-val amber">86.1%</div>
+            <div class="kpi-sub">of 13,065 MSU · threshold 80%</div>
+            <div class="kpi-delta up-bad">▲ 3.1% vs yesterday</div>
+          </div>
+          <div class="kpi-tile red" onclick="go('s7')">
+            <div class="kpi-lbl">Est. daily cost</div>
+            <div class="kpi-val red">$18,432</div>
+            <div class="kpi-sub">threshold $15,000 · PAYROLL01 top</div>
+            <div class="kpi-delta up-bad">▲ 12.4% vs yesterday</div>
+          </div>
+          <div class="kpi-tile amber" onclick="go('s2')">
+            <div class="kpi-lbl">Active findings</div>
+            <div class="kpi-val amber">7</div>
+            <div class="kpi-sub">0 critical · 2 high · 5 medium</div>
+            <div class="kpi-delta up-bad">▲ 2 vs yesterday</div>
+          </div>
+        </div>
+        <div class="kpi-row kpi-4" style="margin-bottom:14px">
+          <div class="kpi-tile blue" onclick="go('s9')">
+            <div class="kpi-lbl">DB2 total fetches</div>
+            <div class="kpi-val" style="font-size:18px">142.3M</div>
+            <div class="kpi-sub">DS13 · 30% above 30-day avg</div>
+            <div class="kpi-delta up-bad">▲ 8.2% vs yesterday</div>
+          </div>
+          <div class="kpi-tile red" onclick="go('s11')">
+            <div class="kpi-lbl">BP0 hit ratio (DS13)</div>
+            <div class="kpi-val red">87.3%</div>
+            <div class="kpi-sub">threshold 95% · sequential prefetch ×11.9</div>
+            <div class="kpi-delta down-bad">▼ 9.8pp vs yesterday</div>
+          </div>
+          <div class="kpi-tile neu">
+            <div class="kpi-lbl">WLM goal attainment</div>
+            <div class="kpi-val muted">—</div>
+            <div class="kpi-sub" style="color:var(--amber)">Goals not configured · see Thresholds</div>
+          </div>
+          <div class="kpi-tile neu">
+            <div class="kpi-lbl">RACF failures</div>
+            <div class="kpi-val muted">—</div>
+            <div class="kpi-sub">SMF 80 not in your GDG</div>
+          </div>
+        </div>
+
+        <!-- CHARTS + PANELS -->
+        <div class="chart-grid cg-2">
+          <!-- CPU TREND -->
+          <div class="chart-card">
+            <div class="chart-head">
+              <div><div class="chart-title">CPU utilisation · 24 Sep</div><div class="chart-sub">PROD1 · General Purpose CP · MIPS</div></div>
+              <button class="btn btn-s btn-sm" onclick="go('s3')">View report →</button>
+            </div>
+            <div class="chart-body"><svg width="100%" height="160" id="c-cpu"></svg></div>
+            <div class="chart-foot">
+              <div class="leg"><div class="leg-line" style="background:#1d4ed8"></div>GP CP</div>
+              <div class="leg"><div class="leg-line" style="background:#059669"></div>zIIP</div>
+              <div class="leg"><div class="leg-dash" style="border-color:#b45309"></div>80% threshold</div>
+              <div class="leg"><div class="leg-dash" style="border-color:#dc2626"></div>Capacity</div>
+            </div>
+          </div>
+
+          <!-- TOP FINDINGS -->
+          <div class="chart-card">
+            <div class="chart-head">
+              <div><div class="chart-title">Findings</div><div class="chart-sub">7 active · 24 Sep 2026</div></div>
+              <button class="btn btn-s btn-sm" onclick="go('s2')">View all →</button>
+            </div>
+            <div id="dash-findings">
+              <!-- findings injected by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- AI SUMMARY + REC PANEL -->
+        <div class="chart-grid cg-2">
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">AI run summary</div><div class="chart-sub">Generated after ingest · 03:54 AM</div></div></div>
+            <div class="chart-body" style="font-size:13px;color:var(--text-sec);line-height:1.7">
+              <p>Last night's batch completed with a <strong style="color:var(--text)">99.2% job success rate</strong> but 38 abends — a 46% increase on yesterday. PAYROLL01's S0C4 at 22:14 is the most costly single event at $73 estimated.</p>
+              <p style="margin-top:8px">PROD1 CPU peaked at <strong style="color:var(--amber)">86.1% of capacity</strong> — above your 80% threshold. PAYROLL service class was the primary driver at 47% of total MSU. DB2 buffer pool BP0 degraded to <strong style="color:var(--red)">87.3%</strong> hit ratio — the two issues are connected.</p>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">Top AI recommendation</div></div><button class="btn btn-s btn-sm" onclick="go('s12')">View all 4 →</button></div>
+            <div class="chart-body">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span class="badge high">HIGH</span>
+                <span class="type-chip">SMF 101</span>
+                <span class="type-chip">SMF 100</span>
+                <span style="font-size:11px;color:var(--purple);margin-left:auto">✓ Investigation confirmed</span>
+              </div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">BP0 undersized — root cause of PAYROLL01 S0C4 abend chain</div>
+              <div style="font-size:12px;color:var(--text-sec);line-height:1.6">Sequential prefetch spiked ×11.9 in BP0 → extended lock hold times → 3 deadlocks → rollbacks → S0C4 in PAYRLMN. Increase BP0 VPSIZE by 20–30% and run EXPLAIN on DSNPAYRL to find the full-table access path introduced last week.</div>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+                <div style="flex:1;height:4px;background:var(--border);border-radius:2px"><div style="width:93%;height:100%;background:var(--purple);border-radius:2px"></div></div>
+                <span style="font-size:11px;color:var(--text-muted)">93% confidence</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" id="ai-fab" onclick="openAI('Dashboard')">✦</button>
+</div>
+
+<!-- ════ S2 — FINDINGS TABLE ════
+Shows: All findings this run. Severity, source SMF type,
+rule that fired, rule confidence + AI confidence bars,
+combined score. Click a row to expand inline detail
+with specific actions and a link to source records.
+-->
+<div class="screen" id="s2">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><span class="cur">Findings</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib on">⚑</div><div class="sib" onclick="go('s3')">◫</div>
+      <div class="sib" onclick="go('s7')">◻</div><div class="sib" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="page-header">
+        <div class="page-title">Findings</div>
+        <div class="page-desc">Rule-based analysis of your ingested SMF data · 24 Sep 2026 · 7 findings</div>
+      </div>
+      <div class="content">
+        <!-- SUMMARY STRIP -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:5px;padding:12px 14px;display:flex;align-items:center;gap:10px"><span style="font-size:22px;font-weight:600;color:var(--text)">7</span><span style="font-size:12px;color:var(--text-muted)">Total findings</span></div>
+          <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:5px;padding:12px 14px;display:flex;align-items:center;gap:10px"><span style="font-size:22px;font-weight:600;color:var(--red)">0</span><span style="font-size:12px;color:var(--red)">Critical</span></div>
+          <div style="background:var(--orange-bg);border:1px solid var(--orange-border);border-radius:5px;padding:12px 14px;display:flex;align-items:center;gap:10px"><span style="font-size:22px;font-weight:600;color:var(--orange)">2</span><span style="font-size:12px;color:var(--orange)">High</span></div>
+          <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:5px;padding:12px 14px;display:flex;align-items:center;gap:10px"><span style="font-size:22px;font-weight:600;color:var(--amber)">5</span><span style="font-size:12px;color:var(--amber)">Medium</span></div>
+        </div>
+
+        <div class="toolbar">
+          <select class="ctrl-sel"><option>Run: 24 Sep 2026</option><option>Run: 23 Sep</option></select>
+          <select class="ctrl-sel"><option>All severities</option><option>Critical</option><option>High</option><option>Medium</option></select>
+          <select class="ctrl-sel"><option>All SMF types</option><option>SMF 30</option><option>SMF 70</option><option>SMF 100</option><option>SMF 101</option></select>
+          <div class="ml-a"><button class="btn btn-s btn-sm">⬇ CSV</button></div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:72px">Severity</th>
+                <th class="sd">Finding</th>
+                <th style="width:66px">Source</th>
+                <th style="width:52px">Rule</th>
+                <th style="width:108px">Rule confidence</th>
+                <th style="width:108px">AI confidence</th>
+                <th style="width:60px">Combined</th>
+                <th style="width:18px">✦</th>
+                <th style="width:60px">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- ROW 1 — expanded by default -->
+              <tr class="cl row-high" onclick="toggleExp('exp-f1',this)" style="background:#fafbfe">
+                <td><span class="badge high">HIGH</span></td>
+                <td style="font-weight:500">cpu_high — PROD1 dispatch 86.1% of entitled capacity</td>
+                <td><span class="type-chip">SMF 70</span></td>
+                <td class="mono td-muted" style="font-size:11px">CPU-01</td>
+                <td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:88%;background:var(--orange)"></div></div><span class="conf-pct">88%</span></div></td>
+                <td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:87%;background:var(--purple)"></div></div><span class="conf-pct">87%</span></div></td>
+                <td style="font-weight:600;color:var(--orange)">88%</td>
+                <td style="color:var(--purple)">✦</td>
+                <td class="mono td-muted" style="font-size:11px">22:15</td>
+              </tr>
+              <tr class="exp-row" id="exp-f1">
+                <td colspan="9">
+                  <div class="exp-inner">
+                    <div class="exp-grid">
+                      <div>
+                        <div class="exp-label">What happened</div>
+                        <p style="font-size:12px;color:var(--text-sec);line-height:1.6;margin-bottom:10px">PROD1 average GP CP dispatch reached 86.1% of 13,065 MSU entitled capacity during the 22:00–23:00 batch window — above your 80% threshold for 4 consecutive 15-minute RMF intervals.</p>
+                        <div class="exp-label">Next steps</div>
+                        <ol style="font-size:12px;color:var(--text-sec);padding-left:16px;line-height:1.9">
+                          <li>See which workload caused the spike → <a onclick="go('s5');toast('SMF 72 — 22:00–23:00 PROD1 context carried','info')">View WLM at 22:00–23:00</a></li>
+                          <li>If PAYROLL is the driver, check whether CPU growth is a trend → <a onclick="go('s3')">30-day CPU trend</a></li>
+                        </ol>
+                      </div>
+                      <div>
+                        <div class="exp-label" style="color:var(--purple)">✦ AI says</div>
+                        <p style="font-size:12px;color:var(--text-sec);line-height:1.6">PAYROLL service class drove 47% of total MSU at 22:15 — double its 30-day average share of 23%. The CPU spike and the BP0 buffer pool degradation are related: sequential table scans in DSNPAYRL extended lock hold times and inflated CPU. Fix the buffer pool first.</p>
+                      </div>
+                    </div>
+                    <div class="exp-actions">
+                      <button class="btn btn-p btn-sm" onclick="go('s3');toast('SMF 70 — PROD1 · 22:00–23:00 pre-filtered','info')">View source records →</button>
+                      <button class="btn btn-s btn-sm" onclick="go('s3')">Open CPU report</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="cl row-high" onclick="toggleExp('exp-f2',this)">
+                <td><span class="badge high">HIGH</span></td>
+                <td style="font-weight:500">cost_overrun — daily cost $18,432 exceeds $15,000 threshold</td>
+                <td><span class="type-chip">SMF 30</span></td>
+                <td class="mono td-muted" style="font-size:11px">COST-01</td>
+                <td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:95%;background:var(--orange)"></div></div><span class="conf-pct">95%</span></div></td>
+                <td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:94%;background:var(--purple)"></div></div><span class="conf-pct">94%</span></div></td>
+                <td style="font-weight:600;color:var(--orange)">95%</td>
+                <td style="color:var(--purple)">✦</td>
+                <td class="mono td-muted" style="font-size:11px">03:47</td>
+              </tr>
+              <tr class="exp-row" id="exp-f2" style="display:none">
+                <td colspan="9"><div class="exp-inner">
+                  <p style="font-size:12px;color:var(--text-sec);margin-bottom:10px">PAYROLL01 contributed $7,800 (42.3% of $18,432). 30-run average for PAYROLL01 is $4,200 — this run is 86% above its normal cost.</p>
+                  <div class="exp-actions">
+                    <button class="btn btn-p btn-sm" onclick="go('s7');toast('SMF 30 — sorted by cost desc','info')">View jobs by cost →</button>
+                  </div>
+                </div></td>
+              </tr>
+
+              <tr class="cl" onclick="go('s11')">
+                <td><span class="badge med">MED</span></td>
+                <td class="td-link" onclick="go('s11')">db2_bp_pressure — BP0 hit ratio 87.3% · DS13 (threshold 95%)</td>
+                <td><span class="type-chip">SMF 101</span></td>
+                <td class="mono td-muted" style="font-size:11px">DB2-01</td>
+                <td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:92%;background:var(--amber)"></div></div><span class="conf-pct">92%</span></div></td>
+                <td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:87%;background:var(--purple)"></div></div><span class="conf-pct">87%</span></div></td>
+                <td style="font-weight:600;color:var(--amber)">90%</td>
+                <td style="color:var(--purple)">✦</td>
+                <td class="mono td-muted" style="font-size:11px">03:47</td>
+              </tr>
+              <tr class="cl" onclick="toggleExp('exp-f4',this)"><td><span class="badge med">MED</span></td><td>cpu_concentration — PAYROLL 47% of MSU at 22:15</td><td><span class="type-chip">SMF 72</span></td><td class="mono td-muted" style="font-size:11px">CPU-02</td><td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:72%;background:var(--amber)"></div></div><span class="conf-pct">72%</span></div></td><td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:78%;background:var(--purple)"></div></div><span class="conf-pct">78%</span></div></td><td style="font-weight:600;color:var(--amber)">74%</td><td style="color:var(--purple)">✦</td><td class="mono td-muted" style="font-size:11px">03:47</td></tr>
+              <tr class="exp-row" id="exp-f4" style="display:none"><td colspan="9"><div class="exp-inner"><p style="font-size:12px;color:var(--text-sec)">PAYROLL consumed 47.3% of PROD1's total MSU vs its 30-day average of 23.1%. CPU-02 fires when any service class exceeds 40% share for 2+ consecutive intervals.</p><div class="exp-actions"><button class="btn btn-p btn-sm" onclick="go('s5')">View WLM →</button></div></div></td></tr>
+              <tr class="cl" onclick="toggleExp('exp-f5',this)"><td><span class="badge med">MED</span></td><td>db2_deadlock — 3 deadlocks on DSNPAYRL · DS13</td><td><span class="type-chip">SMF 100</span></td><td class="mono td-muted" style="font-size:11px">DB2-03</td><td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:88%;background:var(--amber)"></div></div><span class="conf-pct">88%</span></div></td><td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:82%;background:var(--purple)"></div></div><span class="conf-pct">82%</span></div></td><td style="font-weight:600;color:var(--amber)">86%</td><td style="color:var(--purple)">✦</td><td class="mono td-muted" style="font-size:11px">22:14</td></tr>
+              <tr class="exp-row" id="exp-f5" style="display:none"><td colspan="9"><div class="exp-inner"><p style="font-size:12px;color:var(--text-sec);margin-bottom:10px">3 deadlocks on DSNPAYRL at 22:14:27 — increasing trend over 10 runs (0,0,0,1,0,2,0,0,1,3). Deadlocks caused 3 rollbacks in PAYRLMN, which then triggered the S0C4 abend.</p><div class="exp-actions"><button class="btn btn-p btn-sm" onclick="go('s9')">View DB2 Accounting →</button></div></div></td></tr>
+              <tr class="cl" onclick="toggleExp('exp-f6',this)"><td><span class="badge med">MED</span></td><td>abend_spike — 38 abends vs 26 yesterday (▲46%)</td><td><span class="type-chip">SMF 30</span></td><td class="mono td-muted" style="font-size:11px">ABEND-01</td><td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:92%;background:var(--amber)"></div></div><span class="conf-pct">92%</span></div></td><td class="td-muted">—</td><td style="font-weight:600;color:var(--amber)">92%</td><td></td><td class="mono td-muted" style="font-size:11px">03:47</td></tr>
+              <tr class="exp-row" id="exp-f6" style="display:none"><td colspan="9"><div class="exp-inner"><p style="font-size:12px;color:var(--text-sec)">38 total abends: 22 system (S0C4 ×18, S0C7 ×4) and 16 user. PAYROLL01–04 all abended with S0C4 within a 6-minute window — consistent with a shared root cause (DB2 deadlock → rollback → storage violation).</p><div class="exp-actions"><button class="btn btn-p btn-sm" onclick="go('s7');toast('SMF 30 — filtered to abended jobs','info')">View abended jobs →</button></div></div></td></tr>
+              <tr class="cl" onclick="toggleExp('exp-f7',this)"><td><span class="badge low">LOW</span></td><td>hot_dataset — PROD.GL.MASTER · 3,219 input accesses</td><td><span class="type-chip">SMF 14</span></td><td class="mono td-muted" style="font-size:11px">STOR-02</td><td><div class="conf-wrap"><div class="conf-bar"><div class="conf-fill" style="width:77%;background:var(--blue)"></div></div><span class="conf-pct">77%</span></div></td><td class="td-muted">—</td><td style="font-weight:600;color:var(--blue)">77%</td><td></td><td class="mono td-muted" style="font-size:11px">03:47</td></tr>
+              <tr class="exp-row" id="exp-f7" style="display:none"><td colspan="9"><div class="exp-inner"><p style="font-size:12px;color:var(--text-sec)">PROD.GL.MASTER was accessed 3,219 times — 2.8× your 1,000 access threshold. Dataset is on DASD volume VOL001. Consider DFSMS caching or migration to a faster tier.</p></div></td></tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot"><span>7 findings · 24 Sep 2026</span><div class="pgn"><button class="pg cur">1</button></div></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="openAI('Findings · 24 Sep')">✦</button>
+</div>
+
+<!-- ════ S3 — CPU UTILISATION (SMF 70) ════
+Shows: Drilled from Dashboard or finding. Pre-filtered to
+PROD1 and the spike time window. Report description
+card explains what it shows. Inline finding banner.
+Chart with capacity + threshold lines. Table of RMF
+intervals sortable by utilisation %.
+-->
+<div class="screen" id="s3">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><a onclick="go('s2')">Findings</a><span class="sep">›</span><span class="cur">CPU Utilisation</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib" onclick="go('s2')">⚑</div><div class="sib on">◫</div>
+      <div class="sib" onclick="go('s7')">◻</div><div class="sib" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="drill-bar">Drilled from <a onclick="go('s2')">Findings</a> · cpu_high finding · PROD1 · pre-filtered to 22:00–23:00 24 Sep</div>
+      <div class="page-header">
+        <div class="page-title">CPU Utilisation</div>
+        <div class="page-desc">SMF Record Type 70 · RMF CPU Activity · PROD1</div>
+      </div>
+      <div class="content">
+        <!-- REPORT DESC CARD -->
+        <div class="rdc">
+          <div>
+            <div class="rdc-q">Which LPAR is consuming the most CPU — and when?</div>
+            <div class="rdc-title">CPU Utilisation</div>
+            <div class="rdc-body">
+              <strong>Area:</strong> LPAR and CP engine type. One row per 15-minute RMF interval per processor type.<br>
+              <strong>Filters:</strong> LPAR, CPU type (GP/zIIP/IFL), date range. Currently pre-filtered to PROD1 · 22:00–23:00 from finding context.<br>
+              <strong>Drill:</strong> click a row to see the dispatch/idle/wait breakdown for that interval, then navigate to WLM to see which workload caused it.
+            </div>
+          </div>
+          <div class="rdc-right">
+            <div class="rdc-right-title">Your thresholds</div>
+            <table class="sev-tbl">
+              <tr><td>> 85% entitled</td><td style="color:var(--red)">Critical</td></tr>
+              <tr><td>80–85%</td><td style="color:var(--amber)">Warning (your threshold)</td></tr>
+              <tr><td>< 80%</td><td style="color:var(--green)">Normal</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="finding-banner high">
+          <div class="fb-icon">▲</div>
+          <div class="fb-body">
+            <div class="fb-title">Finding: cpu_high (HIGH · 88%) — PROD1 peaked at 86.1% of entitled MSU at 22:15</div>
+            <div class="fb-desc">Above your 80% threshold for 4 consecutive RMF intervals (22:00–23:00). This is the time window currently filtered below.</div>
+          </div>
+          <div class="fb-action"><button class="btn btn-s btn-sm" onclick="go('s2')">View finding →</button></div>
+        </div>
+
+        <div class="toolbar">
+          <select class="ctrl-sel"><option>Run: 24 Sep 2026</option></select>
+          <div class="fchip">PROD1 <span class="cx" onclick="toast('LPAR filter removed','info')">✕</span></div>
+          <div class="fchip">22:00–23:00 <span class="cx" onclick="toast('Time filter removed','info')">✕</span></div>
+          <select class="ctrl-sel"><option>All CPU types</option><option>GP CP</option><option>zIIP</option></select>
+          <div class="ml-a flex-r">
+            <select class="ctrl-sel" id="cpu-unit"><option value="mips">MIPS</option><option value="msu">MSU</option></select>
+            <button class="btn btn-s btn-sm">⬇ CSV</button>
+          </div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom:14px">
+          <div class="chart-head">
+            <div><div class="chart-title">CPU dispatch · PROD1 · 24 Sep 2026</div><div class="chart-sub">15-minute RMF intervals · General Purpose CP</div></div>
+            <button class="btn btn-g btn-sm" onclick="toast('Chart exported','ok')">⬇</button>
+          </div>
+          <div class="chart-body"><svg width="100%" height="200" id="c-smf70"></svg></div>
+          <div class="chart-foot">
+            <div class="leg"><div class="leg-line" style="background:#1d4ed8"></div>GP CP dispatch</div>
+            <div class="leg"><div class="leg-line" style="background:#059669"></div>zIIP dispatch</div>
+            <div class="leg"><div class="leg-dash" style="border-color:#b45309"></div>80% threshold (10,452 MIPS)</div>
+            <div class="leg"><div class="leg-dash" style="border-color:#dc2626"></div>Capacity (13,065 MIPS)</div>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Timestamp</th><th>LPAR</th><th>CPU type</th><th>Dispatch (MIPS)</th><th>Idle</th><th>Wait</th><th class="sd">Util %</th><th>vs threshold</th><th style="width:18px"></th></tr></thead>
+          <tbody>
+            <tr class="cl row-high" onclick="openModal('m-cpu')" style="background:var(--orange-bg)">
+              <td class="mono" style="font-weight:700">24 Sep 22:15</td>
+              <td class="mono">PROD1</td>
+              <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)">GP CP</span></td>
+              <td class="mono" style="font-weight:600">11,247</td>
+              <td class="mono">1,461</td><td class="mono">357</td>
+              <td class="td-red mono" style="font-weight:600">86.1%</td>
+              <td class="mono" style="color:var(--orange)">▲ 6.1pp</td>
+              <td class="arrow">→</td>
+            </tr>
+            <tr class="cl row-warn" onclick="openModal('m-cpu')">
+              <td class="mono">24 Sep 22:30</td><td class="mono">PROD1</td>
+              <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)">GP CP</span></td>
+              <td class="mono">10,941</td><td class="mono">1,782</td><td class="mono">342</td>
+              <td class="td-amber mono">83.7%</td><td class="mono td-amber">▲ 3.7pp</td><td class="arrow">→</td>
+            </tr>
+            <tr class="cl row-warn" onclick="openModal('m-cpu')">
+              <td class="mono">24 Sep 22:00</td><td class="mono">PROD1</td>
+              <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)">GP CP</span></td>
+              <td class="mono">10,832</td><td class="mono">1,911</td><td class="mono">322</td>
+              <td class="td-amber mono">82.9%</td><td class="mono td-amber">▲ 2.9pp</td><td class="arrow">→</td>
+            </tr>
+            <tr class="cl" onclick="openModal('m-cpu')">
+              <td class="mono">24 Sep 22:45</td><td class="mono">PROD1</td>
+              <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)">GP CP</span></td>
+              <td class="mono">10,102</td><td class="mono">2,641</td><td class="mono">322</td>
+              <td class="td-green mono">77.3%</td><td class="mono td-green">▼ 2.7pp</td><td class="arrow">→</td>
+            </tr>
+            <tr class="cl" onclick="openModal('m-cpu')">
+              <td class="mono">24 Sep 14:00</td><td class="mono">PROD1</td>
+              <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">zIIP</span></td>
+              <td class="mono">4,081</td><td class="mono">9,662</td><td class="mono">322</td>
+              <td class="td-green mono">31.2%</td><td class="mono td-green">Well below</td><td class="arrow">→</td>
+            </tr>
+          </tbody>
+          </table>
+          <div class="tbl-foot"><span>5 of 192 records · PROD1 · 22:00–23:00</span><div class="pgn"><button class="pg cur">1</button><button class="pg">2</button><button class="pg">›</button></div></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="openAI('CPU Utilisation · PROD1 · 22:00–23:00')">✦</button>
+</div>
+
+<!-- CPU INTERVAL MODAL (S4 routes here) -->
+<div class="mbd" id="m-cpu">
+  <div class="modal" style="width:580px">
+    <div class="m-head">
+      <div><div class="m-title">PROD1 · GP CP · 24 Sep 22:15</div><div class="m-sub">RMF 15-minute interval · highest utilisation interval</div></div>
+      <button class="m-close" onclick="closeModal('m-cpu')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="donut-wrap">
+        <svg viewBox="0 0 120 120" width="110" height="110" style="flex-shrink:0">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#f0f2f5" stroke-width="14"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#1d4ed8" stroke-width="14" stroke-dasharray="249 289" stroke-dashoffset="72" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#d1fae5" stroke-width="14" stroke-dasharray="32 289" stroke-dashoffset="-177" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#fde68a" stroke-width="14" stroke-dasharray="8 289" stroke-dashoffset="-209" transform="rotate(-90 60 60)"/>
+          <text x="60" y="56" text-anchor="middle" fill="#0f172a" font-size="15" font-weight="700">86%</text>
+          <text x="60" y="68" text-anchor="middle" fill="#94a3b8" font-size="9">dispatch</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="dl-row"><div class="dl-sw" style="background:#1d4ed8"></div>Dispatch<div class="dl-val">11,247 MIPS (86.1%)</div></div>
+          <div class="dl-row"><div class="dl-sw" style="background:#d1fae5;border:1px solid #6ee7b7"></div>Idle<div class="dl-val">1,461 MIPS (11.2%)</div></div>
+          <div class="dl-row"><div class="dl-sw" style="background:#fde68a;border:1px solid var(--amber-border)"></div>Wait<div class="dl-val">357 MIPS (2.7%)</div></div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)">Capacity 13,065 MIPS · Threshold 10,452 (80%)</div>
+        </div>
+      </div>
+      <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:4px;padding:9px 12px;font-size:12px">
+        <strong style="color:var(--amber)">▲ 8.3% above previous run (22 Sep 22:15):</strong> <span style="color:var(--text-sec)">was 10,382 MIPS (79.5%) — well within threshold. Dispatch increased by 865 MIPS between the same interval on consecutive days.</span>
+      </div>
+    </div>
+    <div class="m-foot">
+      <span style="font-size:12px;color:var(--text-muted)">SMF 70 · PROD1 · GP CP · 15-min interval</span>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-s" onclick="closeModal('m-cpu')">Close</button>
+        <button class="btn btn-p" onclick="closeModal('m-cpu');go('s5');toast('SMF 72 — PROD1 · 22:00–23:00 pre-filtered','info')">View WLM workloads at this time →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="screen" id="s4"></div>
+
+<!-- ════ S5 — WLM WORKLOAD (SMF 72) ════ -->
+<div class="screen" id="s5">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><a onclick="go('s3')">CPU Utilisation</a><span class="sep">›</span><span class="cur">WLM Workload</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib" onclick="go('s2')">⚑</div><div class="sib on">◫</div>
+      <div class="sib" onclick="go('s7')">◻</div><div class="sib" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="drill-bar">Drilled from <a onclick="go('s3')">CPU Utilisation</a> · PROD1 · 22:15 interval</div>
+      <div class="page-header">
+        <div class="page-title">WLM Workload</div>
+        <div class="page-desc">SMF Record Type 72 · RMF Workload Activity · PROD1 · 22:00–23:00</div>
+      </div>
+      <div class="content">
+        <div class="rdc">
+          <div>
+            <div class="rdc-q">Which workload drove the CPU spike at 22:15?</div>
+            <div class="rdc-title">WLM Workload Performance</div>
+            <div class="rdc-body">
+              <strong>Area:</strong> WLM service class per 15-minute RMF interval. MSU is the total WLM-weighted CPU consumed by the service class.<br>
+              <strong>Note:</strong> MSU values reflect WLM CPUCOEFF coefficients from your installation's WLM service definition. Values are not comparable to other organisations.<br>
+              <strong>Drill:</strong> click a service class row to see response time vs goal, MSU share trend, and drill to DB2 plans active for that workload.
+            </div>
+          </div>
+          <div class="rdc-right">
+            <div class="rdc-right-title">MSU concentration threshold</div>
+            <table class="sev-tbl">
+              <tr><td>> 40% of total MSU</td><td style="color:var(--orange)">Finding fires (CPU-02)</td></tr>
+              <tr><td>< 40%</td><td style="color:var(--green)">Normal</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="finding-banner med">
+          <div class="fb-icon">▲</div>
+          <div class="fb-body">
+            <div class="fb-title">Finding: cpu_concentration (MED · 74%) — PAYROLL at 47% of total MSU</div>
+            <div class="fb-desc">PAYROLL service class consumed 47.3% of PROD1's total MSU at 22:15 — above the 40% concentration threshold. Its 30-day average share is 23.1%.</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="fchip">PROD1 <span class="cx">✕</span></div>
+          <div class="fchip">22:00–23:00 <span class="cx">✕</span></div>
+          <div class="ml-a"><button class="btn btn-s btn-sm">⬇ CSV</button></div>
+        </div>
+
+        <div class="chart-grid cg-2">
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">MSU by service class · 22:00–23:00</div><div class="chart-sub">% of total MSU · 15-min intervals</div></div></div>
+            <div class="chart-body"><svg width="100%" height="160" id="c-wlm"></svg></div>
+            <div class="chart-foot">
+              <div class="leg"><div class="leg-dot" style="background:#dc2626"></div>PAYROLL</div>
+              <div class="leg"><div class="leg-dot" style="background:#1d4ed8"></div>ONLINE_TX</div>
+              <div class="leg"><div class="leg-dot" style="background:#059669"></div>BATCH_GEN</div>
+              <div class="leg"><div class="leg-dash" style="border-color:var(--amber)"></div>40% threshold</div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">Response time · PAYROLL</div><div class="chart-sub">ms · WLM goal not configured (V2)</div></div></div>
+            <div class="chart-body"><svg width="100%" height="160" id="c-resp"></svg></div>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Timestamp</th><th>Service class</th><th>Workload</th><th>Transactions</th><th class="sd">Response (ms)</th><th>MSU</th><th>% total MSU</th><th>30d avg %</th><th style="width:18px"></th></tr></thead>
+            <tbody>
+              <tr class="cl row-high" onclick="openModal('m-wlm')" style="background:var(--amber-bg)">
+                <td class="mono" style="font-weight:700">22:15</td>
+                <td style="font-weight:600;color:var(--orange)">PAYROLL</td>
+                <td><span class="conn-chip batch">BATCH</span></td>
+                <td>156</td>
+                <td class="mono td-red" style="font-weight:600">2,847</td>
+                <td class="mono">4,892</td>
+                <td class="mono td-red" style="font-weight:600">47.3%</td>
+                <td class="mono td-muted">23.1%</td>
+                <td class="arrow">→</td>
+              </tr>
+              <tr class="cl" onclick="openModal('m-wlm')">
+                <td class="mono">22:00</td><td style="font-weight:500;color:var(--orange)">PAYROLL</td><td><span class="conn-chip batch">BATCH</span></td>
+                <td>143</td><td class="mono td-amber">2,241</td><td class="mono">4,102</td>
+                <td class="mono td-amber">39.8%</td><td class="mono td-muted">23.1%</td><td class="arrow">→</td>
+              </tr>
+              <tr class="cl" onclick="openModal('m-wlm')">
+                <td class="mono">22:15</td><td>ONLINE_TX</td><td><span class="conn-chip cics">CICS</span></td>
+                <td>8,341</td><td class="mono td-green">121</td><td class="mono">782</td>
+                <td class="mono td-green">7.6%</td><td class="mono td-muted">8.1%</td><td class="arrow">→</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot"><span>3 of 48 · 22:00–23:00 window shown</span><div class="pgn"><button class="pg cur">1</button><button class="pg">2</button><button class="pg">›</button></div></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="openAI('WLM Workload · PROD1 · 22:00–23:00')">✦</button>
+</div>
+
+<!-- WLM MODAL (S6 routes here) -->
+<div class="mbd" id="m-wlm">
+  <div class="modal" style="width:580px">
+    <div class="m-head">
+      <div><div class="m-title">PAYROLL · 24 Sep 22:15</div><div class="m-sub">WLM service class · BATCH · PROD1</div></div>
+      <button class="m-close" onclick="closeModal('m-wlm')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="mini-grid mini-4">
+        <div class="mini-c"><div class="mini-l">Response time</div><div class="mini-v red">2,847ms</div></div>
+        <div class="mini-c"><div class="mini-l">WLM goal</div><div class="mini-v" style="font-size:14px;color:var(--text-muted)">Not set</div></div>
+        <div class="mini-c"><div class="mini-l">Transactions</div><div class="mini-v">156</div></div>
+        <div class="mini-c"><div class="mini-l">MSU consumed</div><div class="mini-v amber">4,892</div></div>
+        <div class="mini-c"><div class="mini-l">% of total MSU</div><div class="mini-v red">47.3%</div></div>
+        <div class="mini-c"><div class="mini-l">30-day avg %</div><div class="mini-v" style="font-size:15px">23.1%</div></div>
+        <div class="mini-c"><div class="mini-l">vs 30d avg</div><div class="mini-v red">▲ 104%</div></div>
+        <div class="mini-c"><div class="mini-l">Connection type</div><div class="mini-v" style="font-size:15px">BATCH</div></div>
+      </div>
+      <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:4px;padding:9px 12px;font-size:12px">
+        <strong style="color:var(--red)">PAYROLL consumed 104% more MSU than its 30-day average.</strong> <span style="color:var(--text-sec)">This is the primary driver of the PROD1 CPU spike. The MSU increase correlates exactly with the buffer pool BP0 degradation — sequential table scans in DSNPAYRL increased CPU time per transaction.</span>
+      </div>
+    </div>
+    <div class="m-foot">
+      <span style="font-size:12px;color:var(--text-muted)">SMF 72 · WLM Goal Mode · PROD1</span>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-s" onclick="closeModal('m-wlm')">Close</button>
+        <button class="btn btn-p" onclick="closeModal('m-wlm');go('s9');toast('SMF 100 — PAYROLL auth ID · 22:00–23:00 pre-filtered','info')">View DB2 plans for PAYROLL →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="screen" id="s6"></div>
+
+<!-- ════ S7 — JOB ACTIVITY / ABENDS (SMF 30) ════ -->
+<div class="screen" id="s7">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><span class="cur">Job Activity</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib" onclick="go('s2')">⚑</div><div class="sib" onclick="go('s3')">◫</div>
+      <div class="sib on">◻</div><div class="sib" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="drill-bar">Navigated from <a onclick="go('s1')">Dashboard</a> · abend alert · pre-filtered to failed jobs</div>
+      <div class="page-header">
+        <div class="page-title">Job Activity</div>
+        <div class="page-desc">SMF Record Type 30 · Job accounting · PROD1 · filtered: abended jobs only</div>
+      </div>
+      <div class="content">
+        <div class="rdc">
+          <div>
+            <div class="rdc-q">Which batch jobs abended last night — and why?</div>
+            <div class="rdc-title">Job Activity</div>
+            <div class="rdc-body">
+              <strong>Area:</strong> Job and step accounting. One row per completed job (subtype 5 termination record).<br>
+              <strong>Filters:</strong> completion code, job name, job class, date range. Currently filtered to completion_code ≠ 0.<br>
+              <strong>Drill:</strong> click a row for job detail with step breakdown, DB2 plans active during the job, and estimated cost.
+            </div>
+          </div>
+          <div class="rdc-right">
+            <div class="rdc-right-title">Completion code guide</div>
+            <table class="sev-tbl">
+              <tr><td class="mono">S0C4</td><td>Storage protection violation</td></tr>
+              <tr><td class="mono">S0C7</td><td>Data exception (bad numeric)</td></tr>
+              <tr><td class="mono">U0xxx</td><td>User-defined condition</td></tr>
+              <tr><td class="mono">B37</td><td>Dataset out of space</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="finding-banner fail">
+          <div class="fb-icon">✗</div>
+          <div class="fb-body">
+            <div class="fb-title">Finding: abend_spike (MED · 92%) — 38 abends · ▲46% vs yesterday · PAYROLL01–04 S0C4 within 6 minutes</div>
+            <div class="fb-desc">4 PAYROLL jobs abended with S0C4 in a 6-minute window at 22:14–22:19 — consistent with a shared root cause. DB2 deadlock-induced rollbacks in DSNPAYRL are the likely trigger.</div>
+          </div>
+          <div class="fb-action"><button class="btn btn-s btn-sm" onclick="go('s2')">View finding →</button></div>
+        </div>
+
+        <div class="kpi-row kpi-4" style="margin-bottom:12px">
+          <div class="kpi-tile red"><div class="kpi-lbl">Total abends</div><div class="kpi-val red">38</div><div class="kpi-sub">▲12 vs yesterday</div></div>
+          <div class="kpi-tile red"><div class="kpi-lbl">System abends</div><div class="kpi-val red">22</div><div class="kpi-sub">S0C4 ×18 · S0C7 ×4</div></div>
+          <div class="kpi-tile amber"><div class="kpi-lbl">User abends</div><div class="kpi-val amber">16</div><div class="kpi-sub">vs avg 6.4/run</div></div>
+          <div class="kpi-tile red"><div class="kpi-lbl">Abend CPU cost</div><div class="kpi-val red">$312</div><div class="kpi-sub">wasted compute</div></div>
+        </div>
+
+        <div class="toolbar">
+          <select class="ctrl-sel"><option>Run: 24 Sep 2026</option></select>
+          <div class="fchip">Abended only <span class="cx">✕</span></div>
+          <select class="ctrl-sel"><option>All codes</option><option>S0C4</option><option>U0xxx</option><option>B37</option></select>
+          <div class="ml-a"><button class="btn btn-s btn-sm">⬇ CSV</button></div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Job name</th><th>Class</th><th class="sd">Abend code</th><th>Abend step</th><th>Started</th><th>Elapsed</th><th>CPU (s)</th><th>Est. cost</th><th style="width:18px"></th></tr></thead>
+            <tbody>
+              <tr class="cl row-fail" onclick="openModal('m-job')" style="background:var(--red-bg)">
+                <td class="mono" style="font-weight:700;color:var(--red)">PAYROLL01</td>
+                <td><span class="conn-chip batch">A</span></td>
+                <td><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--red);background:var(--red-bg);padding:2px 7px;border-radius:3px;border:1px solid var(--red-border)">S0C4</span></td>
+                <td class="mono">STEP030</td>
+                <td class="mono td-sec" style="font-size:12px">22:04:12</td>
+                <td class="mono">10m 15s</td>
+                <td class="mono td-red">18,240</td>
+                <td class="mono td-red">$73.08</td>
+                <td class="arrow">→</td>
+              </tr>
+              <tr class="cl row-fail" onclick="openModal('m-job')"><td class="mono" style="font-weight:600;color:var(--red)">PAYROLL02</td><td><span class="conn-chip batch">A</span></td><td class="mono td-red" style="font-weight:600">S0C4</td><td class="mono">STEP030</td><td class="mono td-sec" style="font-size:12px">22:15:00</td><td class="mono">4m 11s</td><td class="mono td-red">14,100</td><td class="mono td-red">$56.52</td><td class="arrow">→</td></tr>
+              <tr class="cl row-fail" onclick="openModal('m-job')"><td class="mono" style="font-weight:600;color:var(--red)">PAYROLL03</td><td><span class="conn-chip batch">A</span></td><td class="mono td-red" style="font-weight:600">S0C4</td><td class="mono">STEP030</td><td class="mono td-sec" style="font-size:12px">22:15:30</td><td class="mono">4m 14s</td><td class="mono td-red">13,820</td><td class="mono td-red">$55.38</td><td class="arrow">→</td></tr>
+              <tr class="cl" onclick="openModal('m-job')"><td class="mono" style="font-weight:500">GLPOST01</td><td><span class="conn-chip batch">A</span></td><td class="mono td-amber">U0100</td><td class="mono">STEP010</td><td class="mono td-sec" style="font-size:12px">21:42:18</td><td class="mono">4m 17s</td><td class="mono">4,891</td><td class="mono">$19.59</td><td class="arrow">→</td></tr>
+              <tr class="cl" onclick="openModal('m-job')"><td class="mono" style="font-weight:500">TAPEBACK</td><td><span class="conn-chip batch">B</span></td><td class="mono td-amber">B37</td><td class="mono">BACKUP</td><td class="mono td-sec" style="font-size:12px">00:31:44</td><td class="mono">3m 30s</td><td class="mono">1,204</td><td class="mono">$4.82</td><td class="arrow">→</td></tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot"><span>5 of 38 abended jobs</span><div class="pgn"><button class="pg cur">1</button><button class="pg">2</button><button class="pg">›</button></div></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="openAI('Job Activity · abended jobs · 24 Sep')">✦</button>
+</div>
+
+<!-- JOB DETAIL MODAL (S8) -->
+<div class="mbd" id="m-job">
+  <div class="modal" style="width:680px">
+    <div class="m-head">
+      <div><div class="m-title">PAYROLL01 · S0C4 · 22:04:12 – 22:14:27</div><div class="m-sub">Job Class A · PROD1 · 10m 15s elapsed · est. cost $73.08</div></div>
+      <button class="m-close" onclick="closeModal('m-job')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="m-tabs">
+        <button class="m-tab on" onclick="switchTab(this,'mt-overview')">Overview</button>
+        <button class="m-tab" onclick="switchTab(this,'mt-steps')">Steps (6)</button>
+        <button class="m-tab" onclick="switchTab(this,'mt-db2')">DB2 plans</button>
+        <button class="m-tab" onclick="switchTab(this,'mt-cost')">Cost</button>
+      </div>
+      <div class="m-tp on" id="mt-overview">
+        <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:4px;padding:10px 13px;font-size:12px;margin-bottom:14px">
+          <strong style="color:var(--red)">S0C4 — Storage protection violation.</strong> <span style="color:var(--text-sec)">PAYRLMN (step STEP030) attempted to access storage outside its region after a DB2 rollback invalidated its work area. 3 additional PAYROLL jobs abended with the same code within 6 minutes — the shared root cause is DB2 deadlocks in plan DSNPAYRL causing rollbacks that PAYRLMN did not handle gracefully.</span>
+        </div>
+        <div class="tl">
+          <div class="tl-row"><div class="tl-dot tl-ok">✓</div><div class="tl-content"><div class="tl-time">22:04:12</div><div class="tl-title">Job started · PROD1 · Class A</div></div></div>
+          <div class="tl-row"><div class="tl-dot tl-ok">✓</div><div class="tl-content"><div class="tl-time">22:04:18</div><div class="tl-title">STEP010 complete · RC 0</div><div class="tl-desc">Allocation · 6s</div></div></div>
+          <div class="tl-row"><div class="tl-dot tl-ok">✓</div><div class="tl-content"><div class="tl-time">22:04:24</div><div class="tl-title">STEP020 complete · RC 0</div><div class="tl-desc">DB2 bind · 6s</div></div></div>
+          <div class="tl-row"><div class="tl-dot tl-bad">✗</div><div class="tl-content"><div class="tl-time">22:14:27</div><div class="tl-title">STEP030 abended · S0C4</div><div class="tl-desc">PAYRLMN · 10m 03s · 18,240 CPU seconds · DB2 plan DSNPAYRL active · 3 deadlocks at 22:14:20 triggered rollbacks 5 seconds before abend</div></div></div>
+        </div>
+      </div>
+      <div class="m-tp" id="mt-steps">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg);border-bottom:1px solid var(--border)"><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">#</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">Step</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">Program</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">RC / Abend</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">CPU (s)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border-light)"><td class="mono" style="padding:7px 10px">01</td><td class="mono" style="padding:7px 10px">STEP010</td><td class="mono" style="padding:7px 10px">IEFBR14</td><td style="padding:7px 10px;color:var(--green);font-family:monospace;font-size:12px">RC 0</td><td style="padding:7px 10px">0</td></tr>
+            <tr style="border-bottom:1px solid var(--border-light)"><td class="mono" style="padding:7px 10px">02</td><td class="mono" style="padding:7px 10px">STEP020</td><td class="mono" style="padding:7px 10px">DSNUTILB</td><td style="padding:7px 10px;color:var(--green);font-family:monospace;font-size:12px">RC 0</td><td style="padding:7px 10px">42</td></tr>
+            <tr style="background:var(--red-bg)"><td class="mono" style="padding:7px 10px;font-weight:700;color:var(--red)">03</td><td class="mono" style="padding:7px 10px;font-weight:700;color:var(--red)">STEP030</td><td class="mono" style="padding:7px 10px">PAYRLMN</td><td style="padding:7px 10px;color:var(--red);font-family:monospace;font-size:12px;font-weight:700">S0C4 ★</td><td style="padding:7px 10px;color:var(--red);font-weight:600">18,240</td></tr>
+            <tr><td class="mono" style="padding:7px 10px;color:var(--text-muted)">04–06</td><td colspan="4" style="padding:7px 10px;color:var(--text-muted);font-size:12px;font-style:italic">Not executed — abend in STEP030</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="m-tp" id="mt-db2">
+        <p style="font-size:12px;color:var(--text-sec);margin-bottom:10px">DB2 plans active during PAYROLL01 (correlated from SMF 100 by auth ID PAYROLL and time window). DSNPAYRL was active at the time of the S0C4 abend.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg);border-bottom:1px solid var(--border)"><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">Plan</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">Auth ID</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">CPU (MIPS)</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">Fetches</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)">Deadlocks</th><th style="padding:6px 10px;text-align:left;color:var(--text-sec)"></th></tr></thead>
+          <tbody>
+            <tr style="background:var(--amber-bg)">
+              <td class="mono" style="padding:7px 10px;font-weight:700;color:var(--orange)">DSNPAYRL</td>
+              <td class="mono" style="padding:7px 10px">PAYROLL</td>
+              <td class="mono" style="padding:7px 10px;color:var(--amber)">4,892</td>
+              <td class="mono" style="padding:7px 10px">8,234,100</td>
+              <td class="mono" style="padding:7px 10px;color:var(--red);font-weight:700">3</td>
+              <td style="padding:7px 10px"><button class="btn btn-s btn-sm" onclick="closeModal('m-job');go('s9');toast('SMF 100 — DSNPAYRL · 22:04–22:14 pre-filtered','info')">Drill →</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="m-tp" id="mt-cost">
+        <div class="mini-grid mini-3">
+          <div class="mini-c"><div class="mini-l">CPU seconds</div><div class="mini-v red">18,240</div></div>
+          <div class="mini-c"><div class="mini-l">Rate ($/CPU-s)</div><div class="mini-v">$0.004</div></div>
+          <div class="mini-c"><div class="mini-l">Estimated cost</div><div class="mini-v red">$73.08</div></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-sec);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:9px 12px">All CPU before the S0C4 abend is billable. PAYROLL01–04 combined: ~$240 in wasted compute — 1.3% of total daily cost. Estimate uses your configured rate of $0.004/CPU-second.</p>
+      </div>
+    </div>
+    <div class="m-foot">
+      <span style="font-size:12px;color:var(--text-muted)">SMF 30 Subtype 5 · PAYROLL01 · PROD1</span>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-s" onclick="closeModal('m-job')">Close</button>
+        <button class="btn btn-p" onclick="closeModal('m-job');go('s9');toast('SMF 100 — DSNPAYRL · 22:04–22:14 pre-filtered','info')">View DB2 plans →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="screen" id="s8"></div>
+
+<!-- ════ S9 — DB2 ACCOUNTING (SMF 100) ════ -->
+<div class="screen" id="s9">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><a onclick="go('s7')">Job Activity</a><span class="sep">›</span><span class="cur">DB2 Accounting</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib" onclick="go('s2')">⚑</div><div class="sib" onclick="go('s3')">◫</div>
+      <div class="sib" onclick="go('s7')">◻</div><div class="sib on">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="drill-bar">Drilled from <a onclick="go('s7')">Job Activity</a> · PAYROLL01 · plan DSNPAYRL active at abend time</div>
+      <div class="page-header">
+        <div class="page-title">DB2 Accounting</div>
+        <div class="page-desc">SMF Record Type 100 · DS13 · PAYROLL auth ID · 22:04–22:14 24 Sep</div>
+      </div>
+      <div class="content">
+        <div class="finding-banner info">
+          <div class="fb-icon">ℹ</div>
+          <div class="fb-body">
+            <div class="fb-title">DB2 accounting CLASS 3 not detected</div>
+            <div class="fb-desc">Lock wait times below show as zero because CLASS 3 is not active. Add <span class="mono" style="color:var(--text-link)">ACCOUNTNG(CLASS(3))</span> to your DB2 DDF startup procedure (DDF restart only — no DB2 recycle) to enable lock wait analysis and lock contention findings.</div>
+          </div>
+        </div>
+        <div class="finding-banner fail">
+          <div class="fb-icon">✗</div>
+          <div class="fb-body">
+            <div class="fb-title">Finding: db2_deadlock (MED · 86%) — 3 deadlocks on DSNPAYRL at 22:14:20</div>
+            <div class="fb-desc">Deadlock trend over last 10 runs: 0, 0, 0, 1, 0, 2, 0, 0, 1, <strong>3</strong>. Increasing. 3 rollbacks resulted from these deadlocks — PAYRLMN did not handle them and proceeded to access freed storage, causing S0C4.</div>
+          </div>
+          <div class="fb-action"><button class="btn btn-s btn-sm" onclick="go('s2')">View finding →</button></div>
+        </div>
+
+        <div class="chart-grid cg-2">
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">Fetch rate · DSNPAYRL · 22:04–22:14</div><div class="chart-sub">DS13 · getpage calls per minute</div></div></div>
+            <div class="chart-body"><svg width="100%" height="150" id="c-fetch"></svg></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">Deadlock count · DSNPAYRL · last 10 runs</div><div class="chart-sub">DS13 · increasing trend</div></div></div>
+            <div class="chart-body"><svg width="100%" height="150" id="c-dead"></svg></div>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <div class="toolbar" style="border:none;border-bottom:1px solid var(--border-light);border-radius:0;margin-bottom:0">
+            <div class="fchip">DSNPAYRL <span class="cx">✕</span></div>
+            <div class="fchip">22:04–22:14 <span class="cx">✕</span></div>
+            <div class="ml-a"><button class="btn btn-s btn-sm">⬇ CSV</button></div>
+          </div>
+          <table>
+            <thead><tr><th>Timestamp</th><th>Subsystem</th><th>Plan</th><th>Auth ID</th><th>Connection</th><th>CPU (MIPS)</th><th>Elapsed (s)</th><th>Fetches</th><th>Lock wait (s)</th><th class="sd">Deadlocks</th><th style="width:18px"></th></tr></thead>
+            <tbody>
+              <tr class="cl row-fail" onclick="openModal('m-plan')" style="background:var(--red-bg)">
+                <td class="mono" style="font-weight:700">22:14:27</td>
+                <td class="mono">DS13</td>
+                <td class="td-link mono" style="font-weight:700" onclick="openModal('m-plan')">DSNPAYRL</td>
+                <td class="mono">PAYROLL</td>
+                <td><span class="conn-chip batch">BATCH</span></td>
+                <td class="mono td-amber">4,892</td>
+                <td class="mono">603</td>
+                <td class="mono">8,234,100</td>
+                <td class="mono td-muted" title="CLASS 3 not active">0.000 ⚠</td>
+                <td class="mono td-red" style="font-weight:700;font-size:16px">3</td>
+                <td class="arrow">→</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot"><span>1 record · DSNPAYRL · 22:04–22:14</span></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="openAI('DB2 Accounting · DSNPAYRL · DS13')">✦</button>
+</div>
+
+<!-- PLAN DETAIL MODAL (S10) -->
+<div class="mbd" id="m-plan">
+  <div class="modal" style="width:620px">
+    <div class="m-head">
+      <div><div class="m-title">Plan DSNPAYRL · PAYROLL · DS13</div><div class="m-sub">BATCH · 22:14:27 · active at time of S0C4 abend</div></div>
+      <button class="m-close" onclick="closeModal('m-plan')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="mini-grid mini-4">
+        <div class="mini-c"><div class="mini-l">CPU (MIPS)</div><div class="mini-v amber">4,892</div></div>
+        <div class="mini-c"><div class="mini-l">Elapsed (s)</div><div class="mini-v">603</div></div>
+        <div class="mini-c"><div class="mini-l">Fetches</div><div class="mini-v">8.23M</div></div>
+        <div class="mini-c"><div class="mini-l">Deadlocks</div><div class="mini-v red">3</div></div>
+        <div class="mini-c"><div class="mini-l">Rollbacks</div><div class="mini-v red">3</div></div>
+        <div class="mini-c"><div class="mini-l">Lock wait</div><div class="mini-v" style="font-size:14px;color:var(--text-muted)">0.000 ⚠</div></div>
+        <div class="mini-c"><div class="mini-l">Commits</div><div class="mini-v">156</div></div>
+        <div class="mini-c"><div class="mini-l">Timeouts</div><div class="mini-v amber">1</div></div>
+      </div>
+      <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:4px;padding:9px 12px;font-size:12px;margin-bottom:12px">
+        <strong style="color:var(--red)">3 deadlocks + 3 rollbacks — likely root cause of S0C4.</strong><span style="color:var(--text-sec)"> When DB2 rolls back a deadlocked transaction, it frees the storage associated with that unit of recovery. If the application (PAYRLMN) continues accessing those areas without checking the DB2 return code, it gets S0C4. This is a classic DB2 rollback–storage violation pattern.</span>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-sec);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Deadlock trend — last 10 runs</div>
+      <svg width="100%" height="60" id="c-dead-modal"></svg>
+      <div style="font-size:12px;color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:4px;padding:7px 10px;margin-top:7px">▲ Increasing trend · 0, 0, 0, 1, 0, 2, 0, 0, 1, <strong>3</strong> · affected 3 of the last 4 runs</div>
+    </div>
+    <div class="m-foot">
+      <span style="font-size:12px;color:var(--text-muted)">SMF 100 · DS13 · DSNPAYRL</span>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-s" onclick="closeModal('m-plan')">Close</button>
+        <button class="btn btn-p" onclick="closeModal('m-plan');go('s11');toast('SMF 101 — DS13 · BP0 pre-filtered','info')">View buffer pools →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="screen" id="s10"></div>
+
+<!-- ════ S11 — DB2 BUFFER POOLS (SMF 101) ════ -->
+<div class="screen" id="s11">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><a onclick="go('s9')">DB2 Accounting</a><span class="sep">›</span><span class="cur">Buffer Pools</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib" onclick="go('s2')">⚑</div><div class="sib" onclick="go('s3')">◫</div>
+      <div class="sib" onclick="go('s7')">◻</div><div class="sib on">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="drill-bar">Drilled from <a onclick="go('s9')">DB2 Accounting</a> · Plan DSNPAYRL · root cause: deadlock → rollback → S0C4</div>
+      <div class="page-header">
+        <div class="page-title">DB2 Buffer Pools</div>
+        <div class="page-desc">SMF Record Type 101 · DS13 · Root cause: sequential prefetch spike in BP0 → deadlocks in DSNPAYRL</div>
+      </div>
+      <div class="content">
+        <div class="finding-banner fail">
+          <div class="fb-icon">✗</div>
+          <div class="fb-body">
+            <div class="fb-title">Root cause confirmed — BP0 hit ratio 87.3% · sequential prefetch ×11.9 → deadlocks → S0C4</div>
+            <div class="fb-desc">BP0 sequential prefetch pages spiked from 412K (30-day baseline) to 4.89M (×11.9). Long sequential scans extend row-level lock hold times → deadlocks in DSNPAYRL → rollbacks → PAYRLMN accesses freed storage → S0C4. Fix: resize BP0 and add missing index on DSNPAYRL's scanned table.</div>
+          </div>
+          <div class="fb-action"><button class="btn btn-p btn-sm" onclick="go('s12');toast('AI recommendation: root cause confirmed — view full analysis','info')">View AI recommendation →</button></div>
+        </div>
+
+        <div class="finding-banner info">
+          <div class="fb-icon">⚠</div>
+          <div class="fb-body">
+            <div class="fb-title">STATIME notice</div>
+            <div class="fb-desc">Only 1 SMF 101 record per DB2 startup was detected — consistent with STATIME=0. Buffer pool trend charts below have sparse data points. Set <span class="mono" style="color:var(--text-link)">STATIME 30</span> in DSNZPARM (DB2 recycle required) for interval-based trend analysis.</div>
+          </div>
+        </div>
+
+        <div class="kpi-row kpi-4" style="margin-bottom:12px">
+          <div class="kpi-tile red"><div class="kpi-lbl">BP0 hit ratio</div><div class="kpi-val red">87.3%</div><div class="kpi-sub">threshold 95% · was 97.1% last week</div></div>
+          <div class="kpi-tile red"><div class="kpi-lbl">Seq prefetch spike</div><div class="kpi-val red">×11.9</div><div class="kpi-sub">4.89M vs 412K baseline</div></div>
+          <div class="kpi-tile red"><div class="kpi-lbl">Physical read IOs</div><div class="kpi-val red">1.17M</div><div class="kpi-sub">vs 34K baseline</div></div>
+          <div class="kpi-tile amber"><div class="kpi-lbl">Lock escalations</div><div class="kpi-val amber">14</div><div class="kpi-sub">triggered by long scan hold times</div></div>
+        </div>
+
+        <div class="chart-grid cg-2">
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">BP0 hit ratio · last 30 days</div><div class="chart-sub">DS13 · threshold 95% · sparse data (STATIME=0)</div></div></div>
+            <div class="chart-body"><svg width="100%" height="170" id="c-bphit"></svg></div>
+            <div class="chart-foot">
+              <div class="leg"><div class="leg-line" style="background:#dc2626"></div>BP0 (degraded)</div>
+              <div class="leg"><div class="leg-line" style="background:#059669"></div>BP1</div>
+              <div class="leg"><div class="leg-dash" style="border-color:#dc2626"></div>95% threshold</div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><div><div class="chart-title">Sequential prefetch pages · BP0 · last 5 runs</div><div class="chart-sub">DS13 · spike visible on 24 Sep</div></div></div>
+            <div class="chart-body"><svg width="100%" height="170" id="c-prefetch"></svg></div>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Buffer pool</th><th>Subsystem</th><th>Getpage</th><th>Read IOs</th><th>Seq prefetch</th><th>Sync read %</th><th class="sa">Hit ratio %</th><th>Lock esc.</th><th style="width:18px"></th></tr></thead>
+            <tbody>
+              <tr class="cl row-fail" onclick="toast('BP0 30-day detail modal would open here','info')" style="background:var(--red-bg)">
+                <td class="mono" style="font-weight:700;color:var(--red)">BP0</td>
+                <td class="mono">DS13</td>
+                <td class="mono">9,234,100</td>
+                <td class="mono td-red">1,171,830</td>
+                <td class="mono td-red">4,892,100</td>
+                <td class="mono">12.7%</td>
+                <td class="td-red mono" style="font-weight:700;font-size:16px">87.3%</td>
+                <td class="mono td-amber">14</td>
+                <td class="arrow">→</td>
+              </tr>
+              <tr class="cl" onclick="toast('BP1 detail','info')">
+                <td class="mono">BP1</td><td class="mono">DS13</td>
+                <td class="mono">2,841,200</td><td class="mono">56,824</td><td class="mono">412,100</td>
+                <td class="mono">2.0%</td><td class="mono td-green">98.0%</td><td class="mono td-green">0</td><td class="arrow">→</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot"><span>2 pools · DS13</span></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="go('s12')">✦</button>
+</div>
+
+<!-- ════ S12 — AI RECOMMENDATIONS ════ -->
+<div class="screen" id="s12">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><span class="cur">AI Recommendations</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib on">⚑</div><div class="sib" onclick="go('s3')">◫</div>
+      <div class="sib" onclick="go('s7')">◻</div><div class="sib" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <main class="main">
+      <div class="page-header">
+        <div class="page-title">AI Recommendations</div>
+        <div class="page-desc">Generated by claude-sonnet-4-6 after ingest · 24 Sep 2026 03:54 AM · 4 recommendations</div>
+      </div>
+      <div class="content">
+        <div class="finding-banner ok">
+          <div class="fb-icon">✓</div>
+          <div class="fb-body">
+            <div class="fb-title">Investigation path confirmed</div>
+            <div class="fb-desc">Dashboard → Findings → CPU Utilisation → WLM PAYROLL → DB2 Accounting DSNPAYRL → Buffer Pools BP0. Your investigation matches the AI's root cause chain exactly — the recommendation below ties it together.</div>
+          </div>
+        </div>
+
+        <!-- FEATURED — MATCHED TO INVESTIGATION -->
+        <div class="rec-card featured">
+          <div class="rec-card-head">
+            <div style="display:flex;align-items:center;gap:8px;flex:1">
+              <span class="badge high">HIGH</span>
+              <span class="type-chip">SMF 101</span>
+              <span class="type-chip">SMF 100</span>
+              <span class="type-chip">SMF 30</span>
+            </div>
+            <span class="rec-featured-badge">✓ Matches your investigation</span>
+          </div>
+          <div class="rec-card-body">
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">DB2 Buffer Pool BP0 undersized — root cause of PAYROLL01–04 S0C4 abend chain</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+              <div style="flex:1;height:4px;background:var(--border);border-radius:2px"><div style="width:93%;height:100%;background:var(--purple);border-radius:2px"></div></div>
+              <span style="font-size:11px;color:var(--text-muted)">Rule 94% · AI 91% · Combined 93%</span>
+            </div>
+            <p>BP0 sequential prefetch pages spiked from 412K (baseline) to 4.89M (×11.9) on 24 Sep. This is consistent with a recent SQL change in DSNPAYRL introducing full-table scans on a large table. Long sequential scan I/O holds row-level locks for the duration of each page read — at ×11.9 the lock hold time was long enough to cause 3 deadlocks at 22:14:20. DB2 rolled back the deadlocked transactions; PAYRLMN did not check return codes and proceeded to access freed storage, triggering S0C4 in STEP030. All 4 parallel PAYROLL jobs share the same plan and accessed the same table, causing all 4 to abend within 6 minutes.</p>
+            <div style="margin-top:10px;font-size:12px;font-weight:600;color:var(--text-sec)">Specific actions</div>
+            <ol style="margin-top:5px;padding-left:16px;font-size:12px;color:var(--text-sec);line-height:1.9">
+              <li><strong>Immediate:</strong> Increase BP0 VPSIZE by 20–30% in DSNZPARM and restart the buffer pool (no DB2 recycle required).</li>
+              <li><strong>Root cause:</strong> Run EXPLAIN on DSNPAYRL to identify the full-table access path. Check the PAYROLL application change log for 22–24 Sep for SQL or schema changes. Add a missing index on the scanned table.</li>
+              <li><strong>Application fix:</strong> Review PAYRLMN source code for DB2 return code checking after FETCH/INSERT/UPDATE calls. Add SQLCODE check and graceful error handling for SQLCODE -911 (deadlock rollback).</li>
+              <li><strong>Monitor:</strong> Watch BP0 hit ratio and DSNPAYRL deadlock count for next 3 ingestion runs after the BP0 resize. If deadlocks persist, the missing index is still needed.</li>
+            </ol>
+          </div>
+          <div class="rec-card-actions">
+            <button class="btn btn-p btn-sm" onclick="go('s11')">↩ Back to buffer pools</button>
+            <button class="btn btn-s btn-sm" onclick="toast('Copied to clipboard','ok')">⧉ Copy</button>
+            <span style="font-size:11px;color:var(--text-muted);margin-left:auto">claude-sonnet-4-6 · Prompt v1.2</span>
+          </div>
+        </div>
+
+        <!-- REC 2 -->
+        <div class="rec-card">
+          <div class="rec-card-head">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge high">HIGH</span><span class="type-chip">SMF 70</span><span class="type-chip">SMF 72</span>
+            </div>
+          </div>
+          <div class="rec-card-body">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">PAYROLL WLM — MSU growth trend approaching capacity</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div style="flex:1;height:4px;background:var(--border);border-radius:2px"><div style="width:84%;height:100%;background:var(--orange);border-radius:2px"></div></div><span style="font-size:11px;color:var(--text-muted)">84% confidence</span></div>
+            <p>PAYROLL consumed 47% of total PROD1 MSU on 24 Sep vs its 30-day average of 23%. At a 3.2%/month growth rate, the 80% CP threshold will be breached within approximately 6 weeks unless WLM service class velocity is adjusted or zIIP offload eligibility is reviewed.</p>
+            <ol style="margin-top:7px;padding-left:16px;font-size:12px;color:var(--text-sec);line-height:1.9">
+              <li>Review PAYROLL WLM service class velocity and importance in your WLM service definition.</li>
+              <li>Evaluate PAYROLL batch steps for zIIP offload eligibility — the zIIP-eligible % chart in CPU Utilisation shows current offload rate.</li>
+              <li>Initiate a capacity planning review for Q4 2026.</li>
+            </ol>
+          </div>
+          <div class="rec-card-actions">
+            <button class="btn btn-p btn-sm" onclick="go('s5')">↩ View WLM</button>
+            <button class="btn btn-s btn-sm" onclick="toast('Copied','ok')">⧉ Copy</button>
+          </div>
+        </div>
+
+        <!-- REC 3 + 4 (compact) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="rec-card">
+            <div class="rec-card-head"><div style="display:flex;align-items:center;gap:8px"><span class="badge high">HIGH</span><span class="type-chip">SMF 30</span></div></div>
+            <div class="rec-card-body">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px">PAYROLL01 — cost 86% above its own average</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px"><div style="flex:1;height:4px;background:var(--border);border-radius:2px"><div style="width:95%;height:100%;background:var(--orange);border-radius:2px"></div></div><span style="font-size:11px;color:var(--text-muted)">95%</span></div>
+              <p>PAYROLL01 cost $73.08 on 24 Sep vs its 30-run average of $39.30. This is directly caused by the 18,240 CPU seconds consumed before the S0C4 abend — an inflated run that should have been much shorter. Fixing the BP0 and PAYRLMN return code handling will normalise this.</p>
+            </div>
+            <div class="rec-card-actions"><button class="btn btn-p btn-sm" onclick="go('s7')">↩ View jobs</button></div>
+          </div>
+          <div class="rec-card">
+            <div class="rec-card-head">
+              <div style="display:flex;align-items:center;gap:8px"><span class="badge med">MED</span><span class="type-chip">SMF 100</span></div>
+              <span style="font-size:10px;background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber);padding:1px 7px;border-radius:10px;font-weight:500">Advisory</span>
+            </div>
+            <div class="rec-card-body">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px">DSNPAYRL deadlock trend — escalating pattern</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px"><div style="flex:1;height:4px;background:var(--border);border-radius:2px"><div style="width:74%;height:100%;background:var(--amber);border-radius:2px"></div></div><span style="font-size:11px;color:var(--amber)">74% — Advisory</span></div>
+              <p>Deadlock count in DSNPAYRL increased each time it appeared over the last 10 runs (0,0,0,1,0,2,0,0,1,3). The trend is real but the underlying SQL change is the root cause — resolving BP0 and adding the missing index should stop the pattern. Monitor for 2 more runs post-fix.</p>
+            </div>
+            <div class="rec-card-actions"><button class="btn btn-p btn-sm" onclick="go('s9')">↩ View DB2 Accounting</button></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail"><div class="rrb">ℹ</div><div class="rrb">⧩</div></div>
+  </div>
+  <button class="ai-fab" onclick="openAI('AI Recommendations · 24 Sep')">✦</button>
+</div>
+
+<!-- ════ S13 — AI ASSISTANT (panel open state) ════ -->
+<div class="screen" id="s13">
+  <nav class="topnav">
+    <div class="tn-logo"><div class="tn-logomark">S</div></div>
+    <div class="tn-brand">SMF Analytics</div>
+    <div class="tn-bc"><a onclick="go('s1')">Dashboard</a><span class="sep">›</span><span class="cur">CPU Utilisation</span></div>
+    <div class="tn-right"><div class="tn-btn"><div class="org-pill">🏢 Contoso Bank ⌄</div></div><div class="tn-btn">?</div></div>
+  </nav>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sib" onclick="go('s1')">⊞</div><div class="sib on">◫</div><div class="sib" onclick="go('s7')">◻</div>
+      <div class="sib" onclick="go('s9')">◈</div>
+      <div class="sib sib-gap"></div><div class="sib">⚙</div><div class="sib">👤</div>
+    </aside>
+    <!-- page content pushed left by open AI panel -->
+    <main class="main" style="margin-right:520px">
+      <div class="page-header">
+        <div class="page-title">CPU Utilisation</div>
+        <div class="page-desc">SMF Record Type 70 · PROD1 · AI assistant open on right</div>
+      </div>
+      <div class="content">
+        <div class="finding-banner info">
+          <div class="fb-icon">ℹ</div>
+          <div class="fb-body"><div class="fb-desc">AI assistant is open. It has context of this page (CPU Utilisation · PROD1 · 22:00–23:00). Ask anything about your CPU data, or request a capacity headroom analysis.</div></div>
+        </div>
+        <div class="chart-card" style="margin-bottom:14px">
+          <div class="chart-head"><div><div class="chart-title">CPU dispatch · PROD1 · 24 Sep</div></div></div>
+          <div class="chart-body"><svg width="100%" height="160" id="c-ai-bg"></svg></div>
+        </div>
+      </div>
+    </main>
+    <div class="right-rail" style="display:none"></div>
+  </div>
+  <!-- AI Panel forced open for this screen -->
+  <button class="ai-fab open" onclick="closeAI();go('s3')" title="Close AI">✕</button>
+</div>
+
+<script>
+const screens = ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12','s13'];
+
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  const sc = document.getElementById(id);
+  if (sc) sc.classList.add('on');
+  document.querySelectorAll('.pb').forEach((b,i) => b.classList.toggle('on', screens[i] === id));
+  window.scrollTo(0,0);
+  if (id === 's4') { go('s3'); setTimeout(() => openModal('m-cpu'), 60); return; }
+  if (id === 's6') { go('s5'); setTimeout(() => openModal('m-wlm'), 60); return; }
+  if (id === 's8') { go('s7'); setTimeout(() => openModal('m-job'), 60); return; }
+  if (id === 's10') { go('s9'); setTimeout(() => openModal('m-plan'), 60); return; }
+  if (id === 's13') { openAI('CPU Utilisation · PROD1'); }
+  else { closeAI(); }
+  setTimeout(renderAll, 80);
+}
+
+function toggleExp(rowId, tr) {
+  const r = document.getElementById(rowId);
+  if (!r) return;
+  r.style.display = r.style.display !== 'none' ? 'none' : 'table-row';
+}
+function openModal(id) { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+document.addEventListener('click', e => { if (e.target.classList.contains('mbd')) e.target.classList.remove('on'); });
+function switchTab(btn, panel) {
+  btn.closest('.m-tabs').querySelectorAll('.m-tab').forEach(t => t.classList.remove('on'));
+  btn.classList.add('on');
+  const m = btn.closest('.modal');
+  if (m) m.querySelectorAll('.m-tp').forEach(p => p.classList.remove('on'));
+  const p = document.getElementById(panel);
+  if (p) p.classList.add('on');
+}
+
+/* AI PANEL */
+function openAI(ctx) {
+  document.getElementById('ai-panel').classList.add('open');
+  document.getElementById('ai-fab').classList.add('open');
+  if (ctx) document.getElementById('ai-ctx').textContent = ctx;
+}
+function closeAI() {
+  document.getElementById('ai-panel').classList.remove('open');
+  document.getElementById('ai-fab').classList.remove('open');
+}
+function sendAI() {
+  const inp = document.getElementById('ai-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  appendUserMsg(msg);
+  inp.value = '';
+  setTimeout(() => appendAIThinking(), 300);
+  setTimeout(() => {
+    document.querySelector('.ai-thinking')?.remove();
+    appendAIResponse(getAIResponse(msg));
+  }, 1600);
+}
+function sendMsg(msg) {
+  document.getElementById('ai-input').value = msg;
+  sendAI();
+}
+function appendUserMsg(msg) {
+  const c = document.getElementById('ai-msgs');
+  c.innerHTML += `<div class="ai-msg-user">${msg}</div>`;
+  c.scrollTop = c.scrollHeight;
+}
+function appendAIThinking() {
+  const c = document.getElementById('ai-msgs');
+  c.innerHTML += `<div class="ai-msg-ai ai-thinking"><div class="ai-msg-ai-inner" style="color:var(--text-muted)"><div class="spin-ring"></div> Analysing your data…</div></div>`;
+  c.scrollTop = c.scrollHeight;
+}
+function appendAIResponse(html) {
+  const c = document.getElementById('ai-msgs');
+  c.innerHTML += `<div class="ai-msg-ai"><div class="ai-msg-ai-inner">${html}</div><div class="ai-msg-time">${new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+  c.scrollTop = c.scrollHeight;
+}
+function getAIResponse(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes('headroom') || m.includes('capacity')) return `<p>Based on your 24 Sep data, PROD1 has <strong>13.9% headroom</strong> at peak — PROD1 peaked at 11,247 MIPS (86.1%) of its 13,065 MIPS entitlement.</p><table class="ai-tbl"><tr><th>LPAR</th><th>Peak MIPS</th><th>Capacity</th><th>Peak %</th><th>Headroom</th></tr><tr><td>PROD1</td><td>11,247</td><td>13,065</td><td>86.1%</td><td>1,818 MIPS</td></tr><tr><td>PROD2</td><td>5,696</td><td>8,120</td><td>70.1%</td><td>2,424 MIPS</td></tr></table><p style="margin-top:8px">At PAYROLL's current 3.2%/month growth rate, PROD1 will breach 90% in approximately 6 weeks. Want me to show the 30-day trend?</p>`;
+  if (m.includes('payroll') && m.includes('abend')) return `<p>PAYROLL01 abended with <strong>S0C4</strong> at 22:14:27. Root cause chain:</p><ol style="padding-left:16px;margin:6px 0;line-height:1.9;font-size:12px"><li>BP0 sequential prefetch spiked ×11.9 (full-table scan in DSNPAYRL)</li><li>Long scans held row-level locks → 3 deadlocks at 22:14:20</li><li>DB2 rolled back deadlocked transactions</li><li>PAYRLMN did not check SQLCODE -911 and accessed freed storage → S0C4</li></ol><p>Estimated wasted cost: <strong style="color:var(--red)">$73.08</strong> (18,240 CPU seconds before abend). PAYROLL02–04 followed within 6 minutes — same root cause.</p>`;
+  if (m.includes('changed') || m.includes('yesterday')) return `<p>Key changes vs 23 Sep 2026:</p><table class="ai-tbl"><tr><th>Metric</th><th>23 Sep</th><th>24 Sep</th><th>Change</th></tr><tr><td>Peak CPU (PROD1)</td><td>79.5%</td><td>86.1%</td><td style="color:#dc2626">▲ 6.6pp</td></tr><tr><td>Abends</td><td>26</td><td>38</td><td style="color:#dc2626">▲ 46%</td></tr><tr><td>Est. cost</td><td>$16,401</td><td>$18,432</td><td style="color:#dc2626">▲ 12.4%</td></tr><tr><td>BP0 hit ratio</td><td>97.1%</td><td>87.3%</td><td style="color:#dc2626">▼ 9.8pp</td></tr></table><p style="margin-top:6px">The BP0 degradation is new today — it didn't fire yesterday. The CPU spike and abend chain both trace back to it.</p>`;
+  return `<p>I have data up to <strong>24 Sep 2026</strong> (last ingest completed at 03:47 AM). Ask me about CPU trends, job abends, DB2 performance, cost breakdown, or capacity headroom for any of your production LPARs.</p>`;
+}
+
+/* TOAST */
+function toast(msg, type='info') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const i = {ok:'✓',fail:'✗',info:'ℹ',warn:'⚠'};
+  t.innerHTML = `<span style="font-size:13px;flex-shrink:0">${i[type]||'ℹ'}</span><span style="flex:1">${msg}</span><span class="t-x" onclick="this.parentElement.remove()">✕</span>`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+/* CHARTS */
+function gw(id) { const e = document.getElementById(id); return e ? e.getBoundingClientRect().width || 300 : 300; }
+
+function lineChart(id, series, opts={}) {
+  const el = document.getElementById(id); if (!el) return;
+  const W = gw(id), H = opts.h || 160;
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const p = opts.pad || {t:10,r:12,b:22,l:42};
+  const allV = series.flatMap(s => s.data);
+  const max = opts.max || (Math.max(...allV) * 1.1);
+  const min = opts.min || 0;
+  const n = series[0].data.length;
+  const sx = i => p.l + (i/(n-1)) * (W-p.l-p.r);
+  const sy = v => p.t + (1-(v-min)/(max-min)) * (H-p.t-p.b);
+  let svg = '';
+  [0,.25,.5,.75,1].forEach(f => {
+    const v = min + (max-min)*f, y = sy(v);
+    svg += `<line x1="${p.l}" x2="${W-p.r}" y1="${y}" y2="${y}" stroke="#f0f2f5" stroke-width="1"/>`;
+    svg += `<text x="${p.l-5}" y="${y+4}" text-anchor="end" fill="#94a3b8" font-size="10">${opts.fmt ? opts.fmt(v) : Math.round(v).toLocaleString()}</text>`;
+  });
+  if (opts.thresholds) opts.thresholds.forEach(th => {
+    const y = sy(th.v);
+    svg += `<line x1="${p.l}" x2="${W-p.r}" y1="${y}" y2="${y}" stroke="${th.c}" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+    if (th.lbl) svg += `<text x="${W-p.r-3}" y="${y-4}" text-anchor="end" fill="${th.c}" font-size="10">${th.lbl}</text>`;
+  });
+  series.forEach(s => {
+    if (s.area) {
+      let a = `M${sx(0)},${sy(s.data[0])}`; s.data.forEach((v,i) => { if(i>0) a+=` L${sx(i)},${sy(v)}`; });
+      a += ` L${sx(n-1)},${H-p.b} L${sx(0)},${H-p.b} Z`;
+      svg += `<path d="${a}" fill="${s.c}" fill-opacity="0.1"/>`;
+    }
+    let l = `M${sx(0)},${sy(s.data[0])}`; s.data.forEach((v,i) => { if(i>0) l+=` L${sx(i)},${sy(v)}`; });
+    svg += `<path d="${l}" fill="none" stroke="${s.c}" stroke-width="${s.w||1.5}"/>`;
+    if (s.dots) s.data.forEach((v,i) => svg += `<circle cx="${sx(i)}" cy="${sy(v)}" r="3" fill="${s.c}" stroke="#fff" stroke-width="1.5"/>`);
+  });
+  if (opts.hl) opts.hl.forEach(h => {
+    const x = sx(h.i), y = sy(h.v);
+    svg += `<circle cx="${x}" cy="${y}" r="5" fill="${h.c}" stroke="#fff" stroke-width="2"/>`;
+    if (h.lbl) svg += `<text x="${x+8}" y="${y-5}" fill="${h.c}" font-size="10" font-weight="600">${h.lbl}</text>`;
+  });
+  if (opts.xl) opts.xl.forEach((l,i) => { const xi = sx(i*(n-1)/(opts.xl.length-1)); svg += `<text x="${xi}" y="${H-4}" text-anchor="middle" fill="#94a3b8" font-size="10">${l}</text>`; });
+  el.innerHTML = svg;
+}
+
+function barChart(id, data, opts={}) {
+  const el = document.getElementById(id); if (!el) return;
+  const W = gw(id), H = opts.h || 160;
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const p = opts.pad || {t:8,r:10,b:22,l:42};
+  const max = (opts.max || Math.max(...data.map(d=>d.v))) * 1.1;
+  const bw = (W-p.l-p.r) / (data.length * 1.8);
+  let svg = '';
+  [0,.5,1].forEach(f => {
+    const y = p.t + (1-f)*(H-p.t-p.b);
+    svg += `<line x1="${p.l}" x2="${W-p.r}" y1="${y}" y2="${y}" stroke="#f0f2f5" stroke-width="1"/>`;
+    svg += `<text x="${p.l-5}" y="${y+4}" text-anchor="end" fill="#94a3b8" font-size="10">${opts.fmt ? opts.fmt(f*max) : Math.round(f*max)}</text>`;
+  });
+  data.forEach((d,i) => {
+    const x = p.l + i*(bw*1.8);
+    const bh = Math.max(2, (d.v/max)*(H-p.t-p.b));
+    svg += `<rect x="${x}" y="${H-p.b-bh}" width="${bw}" height="${bh}" rx="2" fill="${d.c||'#1d4ed8'}"/>`;
+    if (d.lbl) svg += `<text x="${x+bw/2}" y="${H-4}" text-anchor="middle" fill="#94a3b8" font-size="9">${d.lbl}</text>`;
+  });
+  el.innerHTML = svg;
+}
+
+function renderAll() {
+  // Dashboard CPU
+  const cpuPts = [3800,4100,5200,7800,9100,9800,8900,7200,8100,10832,11247,10941,10102,7800,6200,5400,4800,5100,6200,7100,7800,8100,7400,6800];
+  const ziipPts = [1100,1300,1600,1800,2100,2300,2200,1900,2100,2800,3200,3100,2900,2100,1700,1500,1300,1400,1700,1900,2100,2200,2000,1800];
+  lineChart('c-cpu', [{data:ziipPts,c:'#059669',area:true},{data:cpuPts,c:'#1d4ed8',area:true,w:2}],
+    {h:160,max:14000,thresholds:[{v:13065,c:'#dc2626',lbl:'Capacity'},{v:10452,c:'#b45309',lbl:'80%'}],xl:['00','04','08','12','16','20','24'],hl:[{i:10,v:11247,c:'#dc2626',lbl:'86.1%'}]});
+
+  // Dashboard findings panel
+  const fp = document.getElementById('dash-findings');
+  if (fp) fp.innerHTML = [
+    {sev:'high',t:'cpu_high — PROD1 86.1% of capacity',typ:'SMF 70',conf:88,s:'go("s3")'},
+    {sev:'high',t:'cost_overrun — $18,432 vs $15,000 threshold',typ:'SMF 30',conf:95,s:'go("s7")'},
+    {sev:'med',t:'db2_bp_pressure — BP0 87.3% hit ratio',typ:'SMF 101',conf:90,s:'go("s11")'},
+  ].map(f => `<div style="padding:9px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 80ms" onmouseover="this.style.background='#fafbfe'" onmouseout="this.style.background=''" onclick="${f.s}"><span class="badge ${f.sev}">${f.sev.toUpperCase()}</span><span style="flex:1;font-size:12px;color:var(--text)">${f.t}</span><span class="type-chip">${f.typ}</span><div style="display:flex;align-items:center;gap:4px"><div style="width:44px;height:3px;background:var(--border);border-radius:2px"><div style="width:${f.conf}%;height:100%;background:var(--purple);border-radius:2px"></div></div><span style="font-size:11px;color:var(--text-muted)">${f.conf}%</span></div></div>`).join('');
+
+  // SMF 70 chart
+  lineChart('c-smf70', [{data:ziipPts,c:'#059669',area:true},{data:cpuPts,c:'#1d4ed8',area:true,w:2}],
+    {h:200,max:14000,thresholds:[{v:13065,c:'#dc2626'},{v:10452,c:'#b45309'}],xl:['00','04','08','12','16','20','24'],hl:[{i:10,v:11247,c:'#dc2626',lbl:'86.1%'}]});
+
+  // WLM
+  lineChart('c-wlm', [
+    {data:[41,39,47,44],c:'#dc2626',dots:true,w:2},
+    {data:[8,8,8,7],c:'#1d4ed8',dots:true},
+    {data:[19,21,18,20],c:'#059669',dots:true},
+  ], {h:160,max:60,thresholds:[{v:40,c:'#b45309',lbl:'40%'}],xl:['22:00','22:15','22:30','22:45'],fmt:v=>Math.round(v)+'%'});
+  lineChart('c-resp', [{data:[2241,2847,2103,1892],c:'#dc2626',dots:true,w:2}],
+    {h:160,xl:['22:00','22:15','22:30','22:45']});
+
+  // Fetch + deadlock
+  lineChart('c-fetch', [{data:[1200000,2100000,4800000,8234100,6100000,3200000],c:'#1d4ed8',area:true}],
+    {h:150,xl:['22:04','22:06','22:08','22:10','22:12','22:14'],fmt:v=>(v/1000000).toFixed(1)+'M',hl:[{i:3,v:8234100,c:'#dc2626',lbl:'8.23M'}]});
+  const dead = [0,0,0,1,0,2,0,0,1,3];
+  lineChart('c-dead', [{data:dead,c:'#dc2626',dots:true,w:2}],
+    {h:150,max:4,xl:['1','2','3','4','5','6','7','8','9','10'],hl:[{i:9,v:3,c:'#dc2626',lbl:'3'}]});
+  lineChart('c-dead-modal', [{data:dead,c:'#dc2626',dots:true,w:2}],
+    {h:60,max:4,pad:{t:6,r:8,b:14,l:22}});
+
+  // BP hit ratio
+  const bp0 = [...Array(28).fill(97.1).map((_,i)=>97.1+Math.sin(i*.7)*.6), 93.1, 87.3];
+  const bp1 = Array(30).fill(98.2).map((_,i)=>98.2+Math.cos(i*.4)*.4);
+  lineChart('c-bphit', [{data:bp1,c:'#059669'},{data:bp0,c:'#dc2626',w:2,area:true}],
+    {h:170,min:84,max:100,thresholds:[{v:95,c:'#dc2626',lbl:'95%'}],xl:['1 Sep','8 Sep','15 Sep','22 Sep','24 Sep'],hl:[{i:29,v:87.3,c:'#dc2626',lbl:'87.3%'}]});
+  barChart('c-prefetch', [
+    {v:412000,c:'#059669',lbl:'20 Sep'},{v:398000,c:'#059669',lbl:'21 Sep'},
+    {v:421000,c:'#059669',lbl:'22 Sep'},{v:891000,c:'#b45309',lbl:'23 Sep'},
+    {v:4892100,c:'#dc2626',lbl:'24 Sep'},
+  ], {h:170,fmt:v=>v>=1e6?(v/1e6).toFixed(1)+'M':Math.round(v/1000)+'K'});
+
+  // AI background chart
+  lineChart('c-ai-bg', [{data:ziipPts,c:'#059669',area:true},{data:cpuPts,c:'#1d4ed8',area:true,w:2}],
+    {h:160,max:14000,thresholds:[{v:13065,c:'#dc2626'},{v:10452,c:'#b45309'}]});
+}
+
+window.addEventListener('load', renderAll);
+window.addEventListener('resize', () => setTimeout(renderAll, 100));
+</script>
+</body>
+</html>
